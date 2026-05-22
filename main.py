@@ -8,7 +8,7 @@ from apple import Apple
 class AppleCatcher:
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((500, 500))
+        self.screen = pygame.display.set_mode((500, 500), pygame.RESIZABLE)
         pygame.display.set_caption("Apple Catcher")
         self.clock = pygame.time.Clock()
 
@@ -98,6 +98,12 @@ class AppleCatcher:
 
     def _rect(self, color, x, y, w, h):
         pygame.draw.rect(self.screen, color, (int(x), int(y), int(w), int(h)))
+
+    def _text_centered(self, msg, rx, ry, rw, rh, size, color):
+        font = pygame.font.Font(None, size)
+        surf = font.render(str(msg), True, color)
+        text_rect = surf.get_rect(center=(int(rx + rw / 2), int(ry + rh / 2)))
+        self.screen.blit(surf, text_rect)
 
     def _ellipse(self, color, cx, cy, w, h):
         pygame.draw.ellipse(
@@ -340,15 +346,15 @@ class AppleCatcher:
         self._blit(self.settings_img, -10, 0, 70, 50)
 
         c = (31, 150, 255)
-        self._text("Level 1", 94, 234, 20, c)
-        self._text("Level 2", 219, 234, 20, c)
-        self._text("Level 3", 344, 234, 20, c)
-        self._text("Shop", 226, 384, 20, c)
+        self._text_centered("Level 1", 75, 200, 100, 50, 20, c)
+        self._text_centered("Level 2", 200, 200, 100, 50, 20, c)
+        self._text_centered("Level 3", 325, 200, 100, 50, 20, c)
+        self._text_centered("Shop", 200, 350, 100, 50, 20, c)
 
         if self.save:
             self._rect((255, 255, 255), 50, 0, 100, 50)
-            self._text("Continue", 65, 24, 17, (31, 150, 25))
-            self._text("Level " + str(self.saveLevel), 72, 43, 17, (31, 150, 25))
+            self._text_centered("Continue", 50, 0, 100, 25, 17, (31, 150, 25))
+            self._text_centered("Level " + str(self.saveLevel), 50, 25, 100, 25, 17, (31, 150, 25))
 
     def draw_shop(self):
         mx, my = pygame.mouse.get_pos()
@@ -358,30 +364,30 @@ class AppleCatcher:
         self._text(str(self.alps), 465, 472, 20, (48, 217, 205))
 
         self._rect((255, 255, 255), 0, 0, 500, 50)
-        self._text("WELCOME TO THE SHOP", 11, 40, 40, (237, 22, 22))
+        self._text_centered("WELCOME TO THE SHOP", 0, 0, 500, 50, 40, (237, 22, 22))
 
         self._rect((255, 255, 255), 0, 430, 100, 69)
-        self._text("Back To Menu", 6, 474, 14, (237, 22, 22))
+        self._text_centered("Back To Menu", 0, 430, 100, 69, 14, (237, 22, 22))
 
         # --- Orange ---
         self._rect((255, 255, 255), 10, 70, 80, 70)
         self._rect((255, 255, 255), 10, 150, 80, 30)
         oh = 10 <= mx <= 90 and 150 <= my <= 180
         if self.orangeBoughtFlashFrames > 0:
-            self._text("Bought", 18, 172, 20, (0, 128, 0))
+            self._text_centered("Bought", 10, 150, 80, 30, 20, (0, 128, 0))
         elif not self.orangeOwned:
             if oh:
                 if self.alps >= 6:
-                    self._text("Buy", 32, 172, 20, (0, 128, 0))
+                    self._text_centered("Buy", 10, 150, 80, 30, 20, (0, 128, 0))
                 else:
-                    self._text("Not enough", 17, 170, 13, (232, 46, 53))
+                    self._text_centered("Not enough", 10, 150, 80, 30, 13, (232, 46, 53))
             else:
-                self._text("6 Alps", 22, 173, 20, (237, 141, 45))
+                self._text_centered("6 Alps", 10, 150, 80, 30, 20, (237, 141, 45))
         else:
             if self.orangeEquipped:
-                self._text("Unequip", 17, 171, 18, (237, 141, 45))
+                self._text_centered("Unequip", 10, 150, 80, 30, 18, (237, 141, 45))
             else:
-                self._text("Equip", 24, 171, 20, (0, 128, 0) if oh else (237, 141, 45))
+                self._text_centered("Equip", 10, 150, 80, 30, 20, (0, 128, 0) if oh else (237, 141, 45))
         self._blit(self.orange, 20, 70, 60, 60)
 
         # --- Pear ---
@@ -389,20 +395,20 @@ class AppleCatcher:
         self._rect((255, 255, 255), 120, 150, 80, 30)
         ph = 121 <= mx <= 199 and 150 <= my <= 180
         if self.pearBoughtFlashFrames > 0:
-            self._text("Bought", 128, 173, 20, (0, 128, 0))
+            self._text_centered("Bought", 120, 150, 80, 30, 20, (0, 128, 0))
         elif not self.pearOwned:
             if ph:
                 if self.alps >= 8:
-                    self._text("Buy", 141, 172, 20, (0, 128, 0))
+                    self._text_centered("Buy", 120, 150, 80, 30, 20, (0, 128, 0))
                 else:
-                    self._text("Not enough", 126, 170, 13, (232, 46, 53))
+                    self._text_centered("Not enough", 120, 150, 80, 30, 13, (232, 46, 53))
             else:
-                self._text("8 Alps", 132, 173, 20, (237, 141, 45))
+                self._text_centered("8 Alps", 120, 150, 80, 30, 20, (237, 141, 45))
         else:
             if self.pearEquipped:
-                self._text("Unequip", 127, 172, 18, (237, 141, 45))
+                self._text_centered("Unequip", 120, 150, 80, 30, 18, (237, 141, 45))
             else:
-                self._text("Equip", 134, 173, 20, (0, 128, 0) if ph else (237, 141, 45))
+                self._text_centered("Equip", 120, 150, 80, 30, 20, (0, 128, 0) if ph else (237, 141, 45))
         self._blit(self.pear, 121, 64, 80, 80)
 
         # --- Trail ---
@@ -410,20 +416,20 @@ class AppleCatcher:
         self._rect((255, 255, 255), 230, 150, 80, 30)
         th = 231 <= mx <= 308 and 150 <= my <= 180
         if self.trailBoughtFlashFrames > 0:
-            self._text("Bought", 238, 173, 20, (0, 128, 0))
+            self._text_centered("Bought", 230, 150, 80, 30, 20, (0, 128, 0))
         elif not self.trailOwned:
             if th:
                 if self.alps >= 9:
-                    self._text("Buy", 251, 173, 20, (0, 128, 0))
+                    self._text_centered("Buy", 230, 150, 80, 30, 20, (0, 128, 0))
                 else:
-                    self._text("Not enough", 238, 170, 13, (232, 46, 53))
+                    self._text_centered("Not enough", 230, 150, 80, 30, 13, (232, 46, 53))
             else:
-                self._text("9 Alps", 242, 173, 20, (237, 141, 45))
+                self._text_centered("9 Alps", 230, 150, 80, 30, 20, (237, 141, 45))
         else:
             if self.trailEquipped:
-                self._text("Unequip", 237, 172, 18, (237, 141, 45))
+                self._text_centered("Unequip", 230, 150, 80, 30, 18, (237, 141, 45))
             else:
-                self._text("Equip", 244, 173, 20, (0, 128, 0) if th else (237, 141, 45))
+                self._text_centered("Equip", 230, 150, 80, 30, 20, (0, 128, 0) if th else (237, 141, 45))
         self._blit(self.trail_img, 240, 76, 60, 60)
 
     def draw_settings(self):
@@ -431,14 +437,14 @@ class AppleCatcher:
         self._text("SETTINGS", 150, 60, 40, (255, 255, 255))
 
         self._rect((255, 255, 255), 410, 460, 90, 40)
-        self._text("Back", 433, 490, 18, (0, 0, 0))
+        self._text_centered("Back", 410, 460, 90, 40, 18, (0, 0, 0))
 
         self._rect((220, 220, 220), 110, 120, 270, 50)
-        self._text("Background color", 170, 150, 18, (0, 0, 0))
+        self._text_centered("Background color", 110, 120, 270, 50, 18, (0, 0, 0))
 
         self._rect((220, 220, 220), 110, 180, 270, 50)
         label = "Cords:ON" if self.showCords else "Cords:OFF"
-        self._text(label, 200, 210, 18, (0, 0, 0))
+        self._text_centered(label, 110, 180, 270, 50, 18, (0, 0, 0))
 
     def draw_paused(self):
         if self.trailEquipped:
@@ -455,7 +461,7 @@ class AppleCatcher:
         self._rect((255, 255, 255), 447, 10, 50, 50)
         self._blit(self.resumeimg, 448, 11, 50, 50)
         self._rect((255, 255, 255), 320, 11, 100, 50)
-        self._text("Menu", 338, 44, 20, (0, 0, 0))
+        self._text_centered("Menu", 320, 11, 100, 50, 20, (0, 0, 0))
         self._rect((255, 255, 255), 254, 11, 50, 50)
         self._blit(self.settings_img, 244, 11, 70, 50)
 
@@ -467,7 +473,7 @@ class AppleCatcher:
         self._text("GAME OVER", 20, 250, 75, (80, 240, 31))
         self._text("Final Score: " + str(self.score), 138, 423, 35, (73, 217, 48))
         self._rect((80, 240, 31), 150, 300, 200, 50)
-        self._text("MENU", 193, 340, 40, (35, 161, 156))
+        self._text_centered("MENU", 150, 300, 200, 50, 40, (35, 161, 156))
 
     def update_and_draw_play(self):
         # Spawn apples
