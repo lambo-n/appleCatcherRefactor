@@ -182,7 +182,7 @@ def create_booster():
 
 def draw_booster(booster):
     ellipse((255, 230, 0), booster["x"], booster["y"], booster["size"], booster["size"])
-    text("S", booster["x"] - 3, booster["y"] + 6, 25, (0, 120, 255))
+    text("S", booster["x"] - 5, booster["y"] + 6, 25, (0, 120, 255))
 
 
 def draw_trail():
@@ -550,7 +550,7 @@ def draw_paused():
 
 def draw_game_over():
     screen.fill((0, 0, 0))
-    text("GAME OVER", 20, 250, 75, (80, 240, 31))
+    text("GAME OVER", 55, 250, 90, (80, 240, 31))
     text("Final Score: " + str(score), 138, 423, 35, (73, 217, 48))
     rect((80, 240, 31), 150, 300, 200, 50)
     text_centered("MENU", 150, 300, 200, 50, 40, (35, 161, 156))
