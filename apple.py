@@ -27,6 +27,9 @@ class Apple:
     def move(self):
         self.appley += self.speed
 
-    def display(self, screen):
-        img = pygame.transform.scale(self.get_img(), (self.size, self.size))
-        screen.blit(img, (int(self.applex), int(self.appley)))
+    def display(self, screen, fx=1.0, fy=1.0):
+        # Coords/size are authored in base space; scale to the live window.
+        img = pygame.transform.scale(
+            self.get_img(), (max(1, int(self.size * fx)), max(1, int(self.size * fy)))
+        )
+        screen.blit(img, (int(self.applex * fx), int(self.appley * fy)))

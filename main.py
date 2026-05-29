@@ -8,7 +8,13 @@ from apple import Apple
 class AppleCatcher:
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((500, 500), pygame.RESIZABLE)
+        # All layout below is authored in a fixed "base" coordinate space and
+        # scaled to the live window size, so the game scales with the window.
+        self.baseW = 500
+        self.baseH = 500
+        self.width = 750
+        self.height = 750
+        self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Apple Catcher")
         self.clock = pygame.time.Clock()
 
@@ -74,6 +80,35 @@ class AppleCatcher:
         self.trailBoughtFlashFrames = 0
 
     # ------------------------------------------------------------------
+    # Scaling (base space -> live window space)
+    # ------------------------------------------------------------------
+
+    @property
+    def fx(self):
+        """Horizontal scale factor."""
+        return self.width / self.baseW
+
+    @property
+    def fy(self):
+        """Vertical scale factor."""
+        return self.height / self.baseH
+
+    @property
+    def fs(self):
+        """Uniform scale factor for fonts and circles (avoids distortion)."""
+        return min(self.fx, self.fy)
+
+    def on_resize(self, w, h):
+        self.width = max(w, 1)
+        self.height = max(h, 1)
+        self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
+
+    def mouse_base(self):
+        """Mouse position converted from window space back into base space."""
+        mx, my = pygame.mouse.get_pos()
+        return mx / self.fx, my / self.fy
+
+    # ------------------------------------------------------------------
     # Utilities
     # ------------------------------------------------------------------
 
@@ -87,28 +122,34 @@ class AppleCatcher:
     def _blit(self, img, x, y, w, h):
         if img is None:
             return
-        scaled = pygame.transform.scale(img, (int(w), int(h)))
-        self.screen.blit(scaled, (int(x), int(y)))
+        scaled = pygame.transform.scale(img, (int(w * self.fx), int(h * self.fy)))
+        self.screen.blit(scaled, (int(x * self.fx), int(y * self.fy)))
 
     def _text(self, msg, x, y, size, color):
-        font = pygame.font.Font(None, size)
+        font = pygame.font.Font(None, max(1, int(size * self.fs)))
         surf = font.render(str(msg), True, color)
         # y is baseline in Processing; subtract ascent to convert to top-left
-        self.screen.blit(surf, (int(x), int(y) - font.get_ascent()))
+        self.screen.blit(surf, (int(x * self.fx), int(y * self.fy) - font.get_ascent()))
 
     def _rect(self, color, x, y, w, h):
-        pygame.draw.rect(self.screen, color, (int(x), int(y), int(w), int(h)))
+        pygame.draw.rect(
+            self.screen, color,
+            (int(x * self.fx), int(y * self.fy), int(w * self.fx), int(h * self.fy)),
+        )
 
     def _text_centered(self, msg, rx, ry, rw, rh, size, color):
-        font = pygame.font.Font(None, size)
+        font = pygame.font.Font(None, max(1, int(size * self.fs)))
         surf = font.render(str(msg), True, color)
-        text_rect = surf.get_rect(center=(int(rx + rw / 2), int(ry + rh / 2)))
+        text_rect = surf.get_rect(center=(
+            int((rx + rw / 2) * self.fx), int((ry + rh / 2) * self.fy),
+        ))
         self.screen.blit(surf, text_rect)
 
     def _ellipse(self, color, cx, cy, w, h):
         pygame.draw.ellipse(
             self.screen, color,
-            (int(cx - w / 2), int(cy - h / 2), int(w), int(h)),
+            (int((cx - w / 2) * self.fx), int((cy - h / 2) * self.fy),
+             int(w * self.fx), int(h * self.fy)),
         )
 
     # ------------------------------------------------------------------
@@ -130,10 +171,12 @@ class AppleCatcher:
         self._text("S", booster["x"] - 5, booster["y"] + 6, 18, (0, 120, 255))
 
     def draw_trail(self):
-        surf = pygame.Surface((10, 10), pygame.SRCALPHA)
+        w = max(1, int(10 * self.fx))
+        h = max(1, int(10 * self.fy))
+        surf = pygame.Surface((w, h), pygame.SRCALPHA)
         surf.fill((237, 9, 9, 70))
         for (x, y) in self.trailPoints:
-            self.screen.blit(surf, (x - 5, y - 5))
+            self.screen.blit(surf, (int(x * self.fx - w / 2), int(y * self.fy - h / 2)))
 
     def show_score(self):
         self._text("Score: " + str(self.score), 41, 38, 25, (255, 255, 255))
@@ -218,6 +261,10 @@ class AppleCatcher:
                 self.gameState = "menu"
 
     def handle_mouse_click(self, mx, my):
+        # Incoming coords are in window space; convert to base space so the
+        # hit-boxes below stay authored in the fixed 500x500 layout.
+        mx = mx / self.fx
+        my = my / self.fy
         gs = self.gameState
 
         # Pause / resume button (play & paused states)
@@ -357,7 +404,7 @@ class AppleCatcher:
             self._text_centered("Level " + str(self.saveLevel), 50, 25, 100, 25, 17, (31, 150, 25))
 
     def draw_shop(self):
-        mx, my = pygame.mouse.get_pos()
+        mx, my = self.mouse_base()
 
         self._blit(self.alpsimg, 330, 387, 200, 200)
         self._text(":", 455, 470, 20, (48, 217, 205))
@@ -452,7 +499,7 @@ class AppleCatcher:
 
         self._blit(self.current_basket_img(), self.basketx, self.baskety, 100, 50)
         for apple in self.applelist:
-            apple.display(self.screen)
+            apple.display(self.screen, self.fx, self.fy)
         for booster in self.boosterList:
             self.draw_booster(booster)
         self.show_score()
@@ -507,7 +554,7 @@ class AppleCatcher:
         # Apples
         for apple in self.applelist[:]:
             apple.move()
-            apple.display(self.screen)
+            apple.display(self.screen, self.fx, self.fy)
             if apple.appley >= 425:
                 self.applelist.remove(apple)
                 self.lives -= 1
@@ -550,7 +597,7 @@ class AppleCatcher:
     # ------------------------------------------------------------------
 
     def draw(self):
-        mx, my = pygame.mouse.get_pos()
+        mx, my = self.mouse_base()
 
         # Background and common HUD (settings/gameOver override with their own fill)
         if self.gameState not in ("settings", "gameOver"):
@@ -581,7 +628,7 @@ class AppleCatcher:
             self.update_and_draw_play()
 
         if self.showCords:
-            self._text(str(mx) + ", " + str(my), 20, 497, 15, (255, 0, 0))
+            self._text(str(int(mx)) + ", " + str(int(my)), 20, 497, 15, (255, 0, 0))
 
     def run(self):
         while True:
@@ -589,6 +636,8 @@ class AppleCatcher:
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
+                elif event.type == pygame.VIDEORESIZE:
+                    self.on_resize(event.w, event.h)
                 elif event.type == pygame.KEYDOWN:
                     self.handle_keydown(event)
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
