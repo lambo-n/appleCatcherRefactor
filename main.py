@@ -1,23 +1,30 @@
-# Apple Catcher - module-level (no classes), following the quickstart.py layout.
+# Apple Catcher - pygame-native rewrite.
+#
+# Everything is drawn to a fixed-size 500x500 "canvas" Surface using native
+# pygame calls (pygame.Rect, pygame.draw, pygame.font, Sprite/Group). The
+# canvas is then scaled once to the live window, so the game scales cleanly
+# without any per-primitive scaling math.
 import pygame
 import random
 import os
 from apple import Apple
+from booster import Booster
 
-# pygame setup
 pygame.init()
 
-# All layout below is authored in a fixed "base" coordinate space and scaled to
-# the live window size, so the game scales with the window.
-baseW = 500
-baseH = 500
-width = 600
-height = 600
-screen = pygame.display.set_mode((width, height))
+CANVAS_SIZE = (500, 500)
+WHITE = (255, 255, 255)
+
+screen = pygame.display.set_mode((600, 600), pygame.RESIZABLE)
 pygame.display.set_caption("Apple Catcher")
+canvas = pygame.Surface(CANVAS_SIZE)
 clock = pygame.time.Clock()
 running = True
 
+
+# ----------------------------------------------------------------------
+# Asset loading
+# ----------------------------------------------------------------------
 
 def load_img(filename):
     path = os.path.join("assets", filename)
@@ -37,10 +44,79 @@ pear = load_img("PEAR.png")
 settings_img = load_img("settings.png")
 trail_img = load_img("trail.png")
 
-# game state
-basketx = 191
-baskety = 220
-applelist = []
+
+# ----------------------------------------------------------------------
+# Native drawing helpers (cached fonts + cached scaled images)
+# ----------------------------------------------------------------------
+
+_font_cache = {}
+_scaled_cache = {}
+
+
+def get_font(size):
+    font = _font_cache.get(size)
+    if font is None:
+        font = pygame.font.Font(None, size)
+        _font_cache[size] = font
+    return font
+
+
+def draw_img(img, x, y, w, h):
+    """Blit an image scaled to (w, h) at (x, y). Scaled results are cached."""
+    if img is None:
+        return
+    key = (id(img), w, h)
+    scaled = _scaled_cache.get(key)
+    if scaled is None:
+        scaled = pygame.transform.scale(img, (w, h))
+        _scaled_cache[key] = scaled
+    canvas.blit(scaled, (x, y))
+
+
+def draw_text(msg, x, y, size, color, anchor="topleft"):
+    surf = get_font(size).render(str(msg), True, color)
+    canvas.blit(surf, surf.get_rect(**{anchor: (x, y)}))
+
+
+def draw_text_centered(msg, rect, size, color):
+    surf = get_font(size).render(str(msg), True, color)
+    canvas.blit(surf, surf.get_rect(center=rect.center))
+
+
+# ----------------------------------------------------------------------
+# Layout: button hitboxes as pygame.Rect (canvas space)
+# ----------------------------------------------------------------------
+
+BTN_PAUSE = pygame.Rect(447, 10, 50, 50)
+BTN_MENU_PAUSED = pygame.Rect(320, 11, 100, 50)
+BTN_SETTINGS_PAUSED = pygame.Rect(254, 11, 50, 50)
+
+BTN_LEVEL1 = pygame.Rect(75, 200, 100, 50)
+BTN_LEVEL2 = pygame.Rect(200, 200, 100, 50)
+BTN_LEVEL3 = pygame.Rect(325, 200, 100, 50)
+BTN_SHOP = pygame.Rect(200, 350, 100, 50)
+BTN_SETTINGS_MENU = pygame.Rect(0, 0, 50, 50)
+BTN_CONTINUE = pygame.Rect(50, 0, 100, 50)
+
+BTN_SETTINGS_BACK = pygame.Rect(410, 460, 90, 40)
+BTN_BG_COLOR = pygame.Rect(110, 120, 270, 50)
+BTN_CORDS = pygame.Rect(110, 180, 270, 50)
+
+BTN_GAMEOVER_MENU = pygame.Rect(150, 300, 200, 50)
+
+BTN_SHOP_BACK = pygame.Rect(0, 430, 100, 69)
+SHOP_ORANGE = pygame.Rect(10, 150, 80, 30)
+SHOP_PEAR = pygame.Rect(120, 150, 80, 30)
+SHOP_TRAIL = pygame.Rect(230, 150, 80, 30)
+
+
+# ----------------------------------------------------------------------
+# Game state
+# ----------------------------------------------------------------------
+
+basket_rect = pygame.Rect(191, 220, 100, 50)
+apples = pygame.sprite.Group()
+boosters = pygame.sprite.Group()
 score = 0
 lives = 3
 difficulty = 3
@@ -49,7 +125,6 @@ previousState = "menu"
 alps = 100
 speed = 9
 baseSpeed = 9
-boosterList = []
 speedBoostTimer = 0
 boostAmount = 5
 boostLength = 150
@@ -74,94 +149,15 @@ bgSettings = [
     (0, 128, 0), (0, 0, 128), (0, 128, 128), (128, 128, 0), (128, 128, 128),
 ]
 
-orangeOwned = False
-orangeEquipped = False
-orangeBoughtFlashMax = 45
-orangeBoughtFlashFrames = 0
+orangeOwned = orangeEquipped = False
+pearOwned = pearEquipped = False
+trailOwned = trailEquipped = False
+orangeBoughtFlashFrames = pearBoughtFlashFrames = trailBoughtFlashFrames = 0
+BOUGHT_FLASH_MAX = 45
 
-pearOwned = False
-pearEquipped = False
-pearBoughtFlashMax = 45
-pearBoughtFlashFrames = 0
-
-trailOwned = False
-trailEquipped = False
-trailBoughtFlashMax = 45
-trailBoughtFlashFrames = 0
-
-
-# ----------------------------------------------------------------------
-# Scaling (base space -> live window space)
-# ----------------------------------------------------------------------
-
-def fx():
-    """Horizontal scale factor."""
-    return width / baseW
-
-
-def fy():
-    """Vertical scale factor."""
-    return height / baseH
-
-
-def fs():
-    """Uniform scale factor for fonts and circles (avoids distortion)."""
-    return min(fx(), fy())
-
-
-def on_resize(w, h):
-    global width, height, screen
-    width = max(w, 1)
-    height = max(h, 1)
-    screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
-
-
-def mouse_base():
-    """Mouse position converted from window space back into base space."""
-    mx, my = pygame.mouse.get_pos()
-    return mx / fx(), my / fy()
-
-
-# ----------------------------------------------------------------------
-# Drawing primitives
-# ----------------------------------------------------------------------
-
-def blit(img, x, y, w, h):
-    if img is None:
-        return
-    scaled = pygame.transform.scale(img, (int(w * fx()), int(h * fy())))
-    screen.blit(scaled, (int(x * fx()), int(y * fy())))
-
-
-def text(msg, x, y, size, color):
-    font = pygame.font.Font(None, max(1, int(size * fs())))
-    surf = font.render(str(msg), True, color)
-    # y is baseline in Processing; subtract ascent to convert to top-left
-    screen.blit(surf, (int(x * fx()), int(y * fy()) - font.get_ascent()))
-
-
-def rect(color, x, y, w, h):
-    pygame.draw.rect(
-        screen, color,
-        (int(x * fx()), int(y * fy()), int(w * fx()), int(h * fy())),
-    )
-
-
-def text_centered(msg, rx, ry, rw, rh, size, color):
-    font = pygame.font.Font(None, max(1, int(size * fs())))
-    surf = font.render(str(msg), True, color)
-    text_rect = surf.get_rect(center=(
-        int((rx + rw / 2) * fx()), int((ry + rh / 2) * fy()),
-    ))
-    screen.blit(surf, text_rect)
-
-
-def ellipse(color, cx, cy, w, h):
-    pygame.draw.ellipse(
-        screen, color,
-        (int((cx - w / 2) * fx()), int((cy - h / 2) * fy()),
-         int(w * fx()), int(h * fy())),
-    )
+# Faint red trail stamp, built once.
+trail_stamp = pygame.Surface((10, 10), pygame.SRCALPHA)
+trail_stamp.fill((237, 9, 9, 70))
 
 
 # ----------------------------------------------------------------------
@@ -176,58 +172,48 @@ def current_basket_img():
     return basket
 
 
-def create_booster():
-    return {"x": random.randint(30, 470), "y": -20, "size": 40, "fallSpeed": 4}
+def to_canvas(pos):
+    """Map a window-space point into canvas space."""
+    mx, my = pos
+    w, h = screen.get_size()
+    return mx * CANVAS_SIZE[0] / w, my * CANVAS_SIZE[1] / h
 
 
-def draw_booster(booster):
-    ellipse((255, 230, 0), booster["x"], booster["y"], booster["size"], booster["size"])
-    text("S", booster["x"] - 5, booster["y"] + 6, 25, (0, 120, 255))
+def mouse_canvas():
+    """Current mouse position mapped from window space into canvas space."""
+    return to_canvas(pygame.mouse.get_pos())
 
 
 def draw_trail():
-    w = max(1, int(10 * fx()))
-    h = max(1, int(10 * fy()))
-    surf = pygame.Surface((w, h), pygame.SRCALPHA)
-    surf.fill((237, 9, 9, 70))
     for (x, y) in trailPoints:
-        screen.blit(surf, (int(x * fx() - w / 2), int(y * fy() - h / 2)))
+        canvas.blit(trail_stamp, trail_stamp.get_rect(center=(x, y)))
 
 
 def show_score():
-    text("Score: " + str(score), 41, 38, 25, (255, 255, 255))
+    draw_text("Score: " + str(score), 41, 25, 25, WHITE)
 
 
 def show_lives():
-    hx = 330
-    for _ in range(lives):
-        blit(heart, hx, 425, 70, 50)
-        hx += 50
+    for i in range(lives):
+        draw_img(heart, 330 + i * 50, 425, 70, 50)
 
 
 def start_game(level):
-    global difficulty, baseSpeed, saveLevel, speed, speedBoostTimer
-    global boosterList, applelist, score, lives, basketx, baskety, gameState
+    global difficulty, baseSpeed, saveLevel, speed, speedBoostTimer, gameState
+    global score, lives
     if level == 1:
-        difficulty = 1
-        baseSpeed = 9
-        saveLevel = 1
+        difficulty, baseSpeed, saveLevel = 1, 9, 1
     elif level == 2:
-        difficulty = 3
-        baseSpeed = 9
-        saveLevel = 2
+        difficulty, baseSpeed, saveLevel = 3, 9, 2
     elif level == 3:
-        difficulty = 6
-        baseSpeed = 11
-        saveLevel = 3
+        difficulty, baseSpeed, saveLevel = 6, 11, 3
     speed = baseSpeed
     speedBoostTimer = 0
-    boosterList = []
-    applelist = []
+    boosters.empty()
+    apples.empty()
     score = 0
     lives = 3
-    basketx = 191
-    baskety = 220
+    basket_rect.topleft = (191, 220)
     gameState = "play"
 
 
@@ -252,11 +238,9 @@ def handle_keydown(event):
             gameState = "settings"
         elif k == pygame.K_c:
             gameState = "paused"
-
     elif gameState == "shop":
         if k in (pygame.K_t, pygame.K_b):
             gameState = "menu"
-
     elif gameState == "settings":
         if k == pygame.K_b:
             gameState = "menu"
@@ -264,7 +248,6 @@ def handle_keydown(event):
             showCords = False
         elif k == pygame.K_g:
             bgIndex = (bgIndex + 1) % len(bgColors)
-
     elif gameState == "paused":
         if k == pygame.K_q:
             gameState = "play"
@@ -272,31 +255,24 @@ def handle_keydown(event):
             gameState = "menu"
         elif k == pygame.K_s:
             gameState = "settings"
-
     elif gameState == "play":
         if k == pygame.K_BACKQUOTE:
             gameState = "paused"
-
     elif gameState == "gameOver":
         if k == pygame.K_SPACE:
             gameState = "menu"
 
 
-def handle_mouse_click(mx, my):
+def handle_mouse_click(pos):
     global gameState, save, previousState, bgIndex, showCords
     global orangeOwned, orangeEquipped, alps, orangeBoughtFlashFrames
     global pearOwned, pearEquipped, pearBoughtFlashFrames
-    global trailOwned, trailEquipped, trailPoints
-    global applelist, boosterList, score, lives, speedBoostTimer, speed
-    global basketx, baskety
-    # Incoming coords are in window space; convert to base space so the
-    # hit-boxes below stay authored in the fixed 500x500 layout.
-    mx = mx / fx()
-    my = my / fy()
+    global trailOwned, trailEquipped, trailPoints, trailBoughtFlashFrames
+    global speedBoostTimer, speed
+    p = to_canvas(pos)
     gs = gameState
 
-    # Pause / resume button (play & paused states)
-    if 447 <= mx <= 497 and 10 <= my <= 60:
+    if BTN_PAUSE.collidepoint(p):
         if gs == "play":
             gameState = "paused"
             return
@@ -304,71 +280,67 @@ def handle_mouse_click(mx, my):
             gameState = "play"
             return
 
-    # Menu button while paused
-    if 320 <= mx <= 420 and 11 <= my <= 61:
-        if gs == "paused":
+    if gs == "paused":
+        if BTN_MENU_PAUSED.collidepoint(p):
             gameState = "menu"
             save = True
             return
-
-    # Settings button while paused
-    if gs == "paused" and 244 <= mx <= 314 and 10 <= my <= 61:
-        previousState = "paused"
-        gameState = "settings"
-        return
+        if BTN_SETTINGS_PAUSED.collidepoint(p):
+            previousState = "paused"
+            gameState = "settings"
+            return
 
     if gs == "settings":
-        if 411 <= mx <= 498 and 461 <= my <= 500:
+        if BTN_SETTINGS_BACK.collidepoint(p):
             gameState = previousState
             return
-        if 112 <= mx <= 378 and 123 <= my <= 172:
+        if BTN_BG_COLOR.collidepoint(p):
             bgIndex = (bgIndex + 1) % len(bgColors)
             return
-        if 110 <= mx <= 382 and 182 <= my <= 231:
+        if BTN_CORDS.collidepoint(p):
             showCords = not showCords
             return
 
     if gs == "menu":
-        if 75 <= mx <= 175 and 200 <= my <= 250:
+        if BTN_LEVEL1.collidepoint(p):
             start_game(1)
             return
-        if 200 <= mx <= 300 and 200 <= my <= 250:
+        if BTN_LEVEL2.collidepoint(p):
             start_game(2)
             return
-        if 325 <= mx <= 425 and 200 <= my <= 250:
+        if BTN_LEVEL3.collidepoint(p):
             start_game(3)
             return
-        if 200 <= mx <= 300 and 350 <= my <= 400:
+        if BTN_SHOP.collidepoint(p):
             gameState = "shop"
             return
-        if 0 <= mx <= 50 and 0 <= my <= 50:
+        if BTN_SETTINGS_MENU.collidepoint(p):
             previousState = "menu"
             gameState = "settings"
             return
-        if 51 <= mx <= 148 and 0 <= my <= 50 and save:
+        if save and BTN_CONTINUE.collidepoint(p):
             gameState = "paused"
             return
 
     if gs == "gameOver":
-        if 150 <= mx <= 325 and 300 <= my <= 350:
+        if BTN_GAMEOVER_MENU.collidepoint(p):
             save = False
-            applelist = []
-            boosterList = []
+            apples.empty()
+            boosters.empty()
             score = 0
             lives = 3
             gameState = "menu"
             speedBoostTimer = 0
             speed = baseSpeed
-            basketx = 191
-            baskety = 220
+            basket_rect.topleft = (191, 220)
             trailPoints = []
             return
 
     if gs == "shop":
-        if 20 <= mx <= 90 and 433 <= my <= 493:
+        if BTN_SHOP_BACK.collidepoint(p):
             gameState = "menu"
             return
-        if 10 <= mx <= 90 and 150 <= my <= 180:
+        if SHOP_ORANGE.collidepoint(p):
             if orangeBoughtFlashFrames > 0:
                 return
             if not orangeOwned:
@@ -376,33 +348,33 @@ def handle_mouse_click(mx, my):
                     orangeOwned = True
                     orangeEquipped = False
                     alps -= 6
-                    orangeBoughtFlashFrames = orangeBoughtFlashMax
+                    orangeBoughtFlashFrames = BOUGHT_FLASH_MAX
                 return
             orangeEquipped = not orangeEquipped
             if orangeEquipped:
                 pearEquipped = False
             return
-        if 121 <= mx <= 199 and 150 <= my <= 180:
+        if SHOP_PEAR.collidepoint(p):
             if pearBoughtFlashFrames > 0:
                 return
             if not pearOwned:
                 if alps >= 8:
                     pearOwned = True
                     alps -= 8
-                    pearBoughtFlashFrames = pearBoughtFlashMax
+                    pearBoughtFlashFrames = BOUGHT_FLASH_MAX
                 return
             pearEquipped = not pearEquipped
             if pearEquipped:
                 orangeEquipped = False
             return
-        if 231 <= mx <= 308 and 150 <= my <= 180:
+        if SHOP_TRAIL.collidepoint(p):
             if trailBoughtFlashFrames > 0:
                 return
             if not trailOwned:
                 if alps >= 9:
                     trailOwned = True
                     alps -= 9
-                    trailBoughtFlashFrames = trailBoughtFlashMax
+                    trailBoughtFlashFrames = BOUGHT_FLASH_MAX
                 return
             trailEquipped = not trailEquipped
             trailPoints = []
@@ -414,209 +386,169 @@ def handle_mouse_click(mx, my):
 # ----------------------------------------------------------------------
 
 def draw_menu():
-    rect((255, 255, 255), 75, 200, 100, 50)
-    rect((255, 255, 255), 200, 200, 100, 50)
-    rect((255, 255, 255), 325, 200, 100, 50)
-    rect((255, 255, 255), 200, 350, 100, 50)
-    rect((255, 255, 255), 0, 0, 50, 50)
-    blit(settings_img, -10, 0, 70, 50)
+    for r in (BTN_LEVEL1, BTN_LEVEL2, BTN_LEVEL3, BTN_SHOP, BTN_SETTINGS_MENU):
+        pygame.draw.rect(canvas, WHITE, r)
+    draw_img(settings_img, -10, 0, 70, 50)
 
     c = (31, 150, 255)
-    text_centered("Level 1", 75, 200, 100, 50, 20, c)
-    text_centered("Level 2", 200, 200, 100, 50, 20, c)
-    text_centered("Level 3", 325, 200, 100, 50, 20, c)
-    text_centered("Shop", 200, 350, 100, 50, 20, c)
+    draw_text_centered("Level 1", BTN_LEVEL1, 20, c)
+    draw_text_centered("Level 2", BTN_LEVEL2, 20, c)
+    draw_text_centered("Level 3", BTN_LEVEL3, 20, c)
+    draw_text_centered("Shop", BTN_SHOP, 20, c)
 
     if save:
-        rect((255, 255, 255), 50, 0, 100, 50)
-        text_centered("Continue", 50, 0, 100, 25, 17, (31, 150, 25))
-        text_centered("Level " + str(saveLevel), 50, 25, 100, 25, 17, (31, 150, 25))
+        pygame.draw.rect(canvas, WHITE, BTN_CONTINUE)
+        draw_text_centered("Continue", pygame.Rect(50, 0, 100, 25), 17, (31, 150, 25))
+        draw_text_centered("Level " + str(saveLevel),
+                           pygame.Rect(50, 25, 100, 25), 17, (31, 150, 25))
+
+
+def _draw_shop_item(item_rect, icon_rect, owned, equipped, flash, cost, hovered):
+    pygame.draw.rect(canvas, WHITE, icon_rect)
+    pygame.draw.rect(canvas, WHITE, item_rect)
+    if flash > 0:
+        draw_text_centered("Bought", item_rect, 20, (0, 128, 0))
+    elif not owned:
+        if hovered:
+            if alps >= cost:
+                draw_text_centered("Buy", item_rect, 20, (0, 128, 0))
+            else:
+                draw_text_centered("Not enough", item_rect, 13, (232, 46, 53))
+        else:
+            draw_text_centered(str(cost) + " Alps", item_rect, 20, (237, 141, 45))
+    elif equipped:
+        draw_text_centered("Unequip", item_rect, 18, (237, 141, 45))
+    else:
+        draw_text_centered("Equip", item_rect, 20, (0, 128, 0) if hovered else (237, 141, 45))
 
 
 def draw_shop():
-    mx, my = mouse_base()
+    p = mouse_canvas()
 
-    blit(alpsimg, 330, 387, 200, 200)
-    text(":", 455, 470, 20, (48, 217, 205))
-    text(str(alps), 465, 472, 20, (48, 217, 205))
+    draw_img(alpsimg, 330, 387, 200, 200)
+    draw_text(":", 455, 463, 20, (48, 217, 205))
+    draw_text(str(alps), 465, 465, 20, (48, 217, 205))
 
-    rect((255, 255, 255), 0, 0, 500, 50)
-    text_centered("WELCOME TO THE SHOP", 0, 0, 500, 50, 40, (237, 22, 22))
+    pygame.draw.rect(canvas, WHITE, pygame.Rect(0, 0, 500, 50))
+    draw_text_centered("WELCOME TO THE SHOP", pygame.Rect(0, 0, 500, 50), 40, (237, 22, 22))
 
-    rect((255, 255, 255), 0, 430, 100, 69)
-    text_centered("Back To Menu", 0, 430, 100, 69, 14, (237, 22, 22))
+    pygame.draw.rect(canvas, WHITE, BTN_SHOP_BACK)
+    draw_text_centered("Back To Menu", BTN_SHOP_BACK, 14, (237, 22, 22))
 
-    # --- Orange ---
-    rect((255, 255, 255), 10, 70, 80, 70)
-    rect((255, 255, 255), 10, 150, 80, 30)
-    oh = 10 <= mx <= 90 and 150 <= my <= 180
-    if orangeBoughtFlashFrames > 0:
-        text_centered("Bought", 10, 150, 80, 30, 20, (0, 128, 0))
-    elif not orangeOwned:
-        if oh:
-            if alps >= 6:
-                text_centered("Buy", 10, 150, 80, 30, 20, (0, 128, 0))
-            else:
-                text_centered("Not enough", 10, 150, 80, 30, 13, (232, 46, 53))
-        else:
-            text_centered("6 Alps", 10, 150, 80, 30, 20, (237, 141, 45))
-    else:
-        if orangeEquipped:
-            text_centered("Unequip", 10, 150, 80, 30, 18, (237, 141, 45))
-        else:
-            text_centered("Equip", 10, 150, 80, 30, 20, (0, 128, 0) if oh else (237, 141, 45))
-    blit(orange, 20, 70, 60, 60)
+    _draw_shop_item(SHOP_ORANGE, pygame.Rect(10, 70, 80, 70), orangeOwned,
+                    orangeEquipped, orangeBoughtFlashFrames, 6, SHOP_ORANGE.collidepoint(p))
+    draw_img(orange, 20, 70, 60, 60)
 
-    # --- Pear ---
-    rect((255, 255, 255), 120, 70, 80, 70)
-    rect((255, 255, 255), 120, 150, 80, 30)
-    ph = 121 <= mx <= 199 and 150 <= my <= 180
-    if pearBoughtFlashFrames > 0:
-        text_centered("Bought", 120, 150, 80, 30, 20, (0, 128, 0))
-    elif not pearOwned:
-        if ph:
-            if alps >= 8:
-                text_centered("Buy", 120, 150, 80, 30, 20, (0, 128, 0))
-            else:
-                text_centered("Not enough", 120, 150, 80, 30, 13, (232, 46, 53))
-        else:
-            text_centered("8 Alps", 120, 150, 80, 30, 20, (237, 141, 45))
-    else:
-        if pearEquipped:
-            text_centered("Unequip", 120, 150, 80, 30, 18, (237, 141, 45))
-        else:
-            text_centered("Equip", 120, 150, 80, 30, 20, (0, 128, 0) if ph else (237, 141, 45))
-    blit(pear, 121, 64, 80, 80)
+    _draw_shop_item(SHOP_PEAR, pygame.Rect(120, 70, 80, 70), pearOwned,
+                    pearEquipped, pearBoughtFlashFrames, 8, SHOP_PEAR.collidepoint(p))
+    draw_img(pear, 121, 64, 80, 80)
 
-    # --- Trail ---
-    rect((255, 255, 255), 230, 71, 80, 70)
-    rect((255, 255, 255), 230, 150, 80, 30)
-    th = 231 <= mx <= 308 and 150 <= my <= 180
-    if trailBoughtFlashFrames > 0:
-        text_centered("Bought", 230, 150, 80, 30, 20, (0, 128, 0))
-    elif not trailOwned:
-        if th:
-            if alps >= 9:
-                text_centered("Buy", 230, 150, 80, 30, 20, (0, 128, 0))
-            else:
-                text_centered("Not enough", 230, 150, 80, 30, 13, (232, 46, 53))
-        else:
-            text_centered("9 Alps", 230, 150, 80, 30, 20, (237, 141, 45))
-    else:
-        if trailEquipped:
-            text_centered("Unequip", 230, 150, 80, 30, 18, (237, 141, 45))
-        else:
-            text_centered("Equip", 230, 150, 80, 30, 20, (0, 128, 0) if th else (237, 141, 45))
-    blit(trail_img, 240, 76, 60, 60)
+    _draw_shop_item(SHOP_TRAIL, pygame.Rect(230, 71, 80, 70), trailOwned,
+                    trailEquipped, trailBoughtFlashFrames, 9, SHOP_TRAIL.collidepoint(p))
+    draw_img(trail_img, 240, 76, 60, 60)
 
 
 def draw_settings():
-    screen.fill(bgSettings[bgIndex])
-    text("SETTINGS", 150, 60, 40, (255, 255, 255))
+    canvas.fill(bgSettings[bgIndex])
+    draw_text("SETTINGS", 150, 30, 40, WHITE)
 
-    rect((255, 255, 255), 410, 460, 90, 40)
-    text_centered("Back", 410, 460, 90, 40, 18, (0, 0, 0))
+    pygame.draw.rect(canvas, WHITE, BTN_SETTINGS_BACK)
+    draw_text_centered("Back", BTN_SETTINGS_BACK, 18, (0, 0, 0))
 
-    rect((220, 220, 220), 110, 120, 270, 50)
-    text_centered("Background color", 110, 120, 270, 50, 18, (0, 0, 0))
+    pygame.draw.rect(canvas, (220, 220, 220), BTN_BG_COLOR)
+    draw_text_centered("Background color", BTN_BG_COLOR, 18, (0, 0, 0))
 
-    rect((220, 220, 220), 110, 180, 270, 50)
-    label = "Cords:ON" if showCords else "Cords:OFF"
-    text_centered(label, 110, 180, 270, 50, 18, (0, 0, 0))
+    pygame.draw.rect(canvas, (220, 220, 220), BTN_CORDS)
+    draw_text_centered("Cords:ON" if showCords else "Cords:OFF", BTN_CORDS, 18, (0, 0, 0))
 
 
-def draw_paused():
+def draw_basket_and_entities():
     if trailEquipped:
         draw_trail()
-
-    blit(current_basket_img(), basketx, baskety, 100, 50)
-    for apple in applelist:
-        apple.display(screen, fx(), fy())
-    for booster in boosterList:
-        draw_booster(booster)
+    draw_img(current_basket_img(), basket_rect.x, basket_rect.y, 100, 50)
+    apples.draw(canvas)
+    boosters.draw(canvas)
     show_score()
     show_lives()
 
-    rect((255, 255, 255), 447, 10, 50, 50)
-    blit(resumeimg, 448, 11, 50, 50)
-    rect((255, 255, 255), 320, 11, 100, 50)
-    text_centered("Menu", 320, 11, 100, 50, 20, (0, 0, 0))
-    rect((255, 255, 255), 254, 11, 50, 50)
-    blit(settings_img, 244, 11, 70, 50)
+
+def draw_paused():
+    draw_basket_and_entities()
+
+    pygame.draw.rect(canvas, WHITE, BTN_PAUSE)
+    draw_img(resumeimg, 448, 11, 50, 50)
+    pygame.draw.rect(canvas, WHITE, BTN_MENU_PAUSED)
+    draw_text_centered("Menu", BTN_MENU_PAUSED, 20, (0, 0, 0))
+    pygame.draw.rect(canvas, WHITE, BTN_SETTINGS_PAUSED)
+    draw_img(settings_img, 244, 11, 70, 50)
 
     if speedBoostTimer > 0:
-        text("BOOST READY", 180, 90, 20, (255, 240, 0))
+        draw_text("BOOST READY", 180, 80, 20, (255, 240, 0))
 
 
 def draw_game_over():
-    screen.fill((0, 0, 0))
-    text("GAME OVER", 55, 250, 90, (80, 240, 31))
-    text("Final Score: " + str(score), 138, 423, 35, (73, 217, 48))
-    rect((80, 240, 31), 150, 300, 200, 50)
-    text_centered("MENU", 150, 300, 200, 50, 40, (35, 161, 156))
+    canvas.fill((0, 0, 0))
+    draw_text("GAME OVER", 55, 190, 90, (80, 240, 31))
+    draw_text("Final Score: " + str(score), 138, 395, 35, (73, 217, 48))
+    pygame.draw.rect(canvas, (80, 240, 31), BTN_GAMEOVER_MENU)
+    draw_text_centered("MENU", BTN_GAMEOVER_MENU, 40, (35, 161, 156))
 
 
 def update_and_draw_play():
     global speed, speedBoostTimer, boosterSpawnCooldown, score, lives, alps, gameState
-    # Spawn apples
-    if random.randint(1, 57) == 8:
-        applelist.append(Apple(difficulty))
 
-    # Spawn boosters
+    if random.randint(1, 57) == 8:
+        apples.add(Apple(difficulty))
+
     if boosterSpawnCooldown > 0:
         boosterSpawnCooldown -= 1
-    else:
-        if random.randint(1, 220) == 12:
-            boosterList.append(create_booster())
-            boosterSpawnCooldown = 120
+    elif random.randint(1, 220) == 12:
+        boosters.add(Booster())
+        boosterSpawnCooldown = 120
 
-    # Speed boost timer
     if speedBoostTimer > 0:
         speedBoostTimer -= 1
         speed = baseSpeed + boostAmount
     else:
         speed = baseSpeed
 
-    # Trail
     if trailEquipped:
-        trailPoints.append((basketx + 50, baskety + 30))
+        trailPoints.append((basket_rect.x + 50, basket_rect.y + 30))
         if len(trailPoints) > trailMaxLength:
             trailPoints.pop(0)
         draw_trail()
 
-    blit(current_basket_img(), basketx, baskety, 100, 50)
+    draw_img(current_basket_img(), basket_rect.x, basket_rect.y, 100, 50)
 
-    # Apples
-    for apple in applelist[:]:
-        apple.move()
-        apple.display(screen, fx(), fy())
-        if apple.appley >= 425:
-            applelist.remove(apple)
+    # Apples: a loose catch box around the basket; missed if they fall past 425.
+    catch_box = pygame.Rect(basket_rect.x - 49, basket_rect.y - 49, 149, 49)
+    apples.update()
+    for apple in list(apples):
+        if apple.rect.top >= 425:
+            apple.kill()
             lives -= 1
-        elif (basketx - 49 <= apple.applex <= basketx + 100
-              and baskety - 49 <= apple.appley <= baskety):
-            applelist.remove(apple)
+        elif catch_box.collidepoint(apple.rect.topleft):
+            apple.kill()
             score += 1
-            if score % 5 == 0 and difficulty == 1:
+            if (difficulty == 1 and score % 5 == 0) or \
+               (difficulty == 3 and score % 3 == 0) or \
+               (difficulty == 6 and score % 2 == 0):
                 alps += 1
-            if score % 3 == 0 and difficulty == 3:
-                alps += 1
-            if score % 2 == 0 and difficulty == 6:
-                alps += 1
+    apples.draw(canvas)
 
-    # Boosters
-    for booster in boosterList[:]:
-        booster["y"] += booster["fallSpeed"]
-        draw_booster(booster)
-        if booster["y"] > 520:
-            boosterList.remove(booster)
-        elif (basketx - 20 <= booster["x"] <= basketx + 100
-              and baskety - 35 <= booster["y"] <= baskety + 20):
-            boosterList.remove(booster)
+    # Boosters.
+    boost_box = pygame.Rect(basket_rect.x - 20, basket_rect.y - 35, 120, 55)
+    boosters.update()
+    for booster in list(boosters):
+        if booster.rect.centery > 520:
+            booster.kill()
+        elif boost_box.collidepoint(booster.rect.center):
+            booster.kill()
             speedBoostTimer = boostLength
+    boosters.draw(canvas)
 
     if speedBoostTimer > 0:
-        text("Boost!", 210, 80, 22, (255, 230, 0))
+        draw_text("Boost!", 210, 65, 22, (255, 230, 0))
 
     if lives <= 0:
         gameState = "gameOver"
@@ -624,26 +556,46 @@ def update_and_draw_play():
     show_score()
     show_lives()
 
-    rect((255, 255, 255), 447, 10, 50, 50)
-    blit(pauseimg, 448, 11, 50, 50)
+    pygame.draw.rect(canvas, WHITE, BTN_PAUSE)
+    draw_img(pauseimg, 448, 11, 50, 50)
+
+
+    
 
 
 # ----------------------------------------------------------------------
-# Main frame
+# Main loop
 # ----------------------------------------------------------------------
 
-def draw():
-    global orangeBoughtFlashFrames, pearBoughtFlashFrames, trailBoughtFlashFrames
-    mx, my = mouse_base()
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.VIDEORESIZE:
+            screen = pygame.display.set_mode((max(event.w, 1), max(event.h, 1)),
+                                             pygame.RESIZABLE)
+        elif event.type == pygame.KEYDOWN:
+            handle_keydown(event)
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            handle_mouse_click(event.pos)
 
-    # Background and common HUD (settings/gameOver override with their own fill)
+    if gameState == "play":
+        keys = pygame.key.get_pressed()
+        if (keys[pygame.K_LEFT] or keys[pygame.K_a]) and basket_rect.x >= 0:
+            basket_rect.x -= speed
+        if (keys[pygame.K_RIGHT] or keys[pygame.K_d]) and basket_rect.x <= 400:
+            basket_rect.x += speed
+        if (keys[pygame.K_DOWN] or keys[pygame.K_s]) and basket_rect.y <= 450:
+            basket_rect.y += speed
+        if (keys[pygame.K_UP] or keys[pygame.K_w]) and basket_rect.y >= 0:
+            basket_rect.y -= speed
+
     if gameState not in ("settings", "gameOver"):
-        screen.fill(bgColors[bgIndex])
-        blit(alpsimg, 220, -50, 200, 200)
-        text(":", 345, 36, 20, (48, 217, 205))
-        text(str(alps), 357, 36, 20, (48, 217, 205))
+        canvas.fill(bgColors[bgIndex])
+        draw_img(alpsimg, 220, -50, 200, 200)
+        draw_text(":", 345, 27, 20, (48, 217, 205))
+        draw_text(str(alps), 357, 27, 20, (48, 217, 205))
 
-    # Flash timers
     if orangeBoughtFlashFrames > 0:
         orangeBoughtFlashFrames -= 1
     if pearBoughtFlashFrames > 0:
@@ -665,42 +617,13 @@ def draw():
         update_and_draw_play()
 
     if showCords:
-        text(str(int(mx)) + ", " + str(int(my)), 20, 497, 15, (255, 0, 0))
+        mx, my = mouse_canvas()
+        draw_text(str(int(mx)) + ", " + str(int(my)), 20, 497, 15, (255, 0, 0),
+                  anchor="bottomleft")
 
-
-# ----------------------------------------------------------------------
-# Main loop
-# ----------------------------------------------------------------------
-
-while running:
-    # poll for events
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        elif event.type == pygame.VIDEORESIZE:
-            on_resize(event.w, event.h)
-        elif event.type == pygame.KEYDOWN:
-            handle_keydown(event)
-        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            handle_mouse_click(*event.pos)
-
-    if gameState == "play":
-        keys = pygame.key.get_pressed()
-        if (keys[pygame.K_LEFT] or keys[pygame.K_a]) and basketx >= 0:
-            basketx -= speed
-        if (keys[pygame.K_RIGHT] or keys[pygame.K_d]) and basketx <= 400:
-            basketx += speed
-        if (keys[pygame.K_DOWN] or keys[pygame.K_s]) and baskety <= 450:
-            baskety += speed
-        if (keys[pygame.K_UP] or keys[pygame.K_w]) and baskety >= 0:
-            baskety -= speed
-
-    draw()
-
-    # flip() the display to put your work on screen
+    # Scale the fixed canvas up to the live window and present.
+    pygame.transform.scale(canvas, screen.get_size(), screen)
     pygame.display.flip()
-
-    # limits FPS to 60
     clock.tick(60)
 
 pygame.quit()

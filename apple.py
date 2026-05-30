@@ -3,19 +3,25 @@ import random
 import os
 
 
-class Apple:
+class Apple(pygame.sprite.Sprite):
+    """A falling apple. Coordinates live in the fixed 500x500 game canvas."""
+
     _img = None
+    SIZE = 40
 
     def __init__(self, difficulty):
-        self.applex = random.randint(0, 460)
-        self.appley = -30
+        super().__init__()
         if difficulty == 1:
             self.speed = random.uniform(1.5, 3)
         elif difficulty == 3:
             self.speed = random.uniform(2.5, 5)
         else:
             self.speed = random.uniform(4, 8)
-        self.size = 40
+
+        self.image = pygame.transform.scale(self.get_img(), (self.SIZE, self.SIZE))
+        self.rect = self.image.get_rect(topleft=(random.randint(0, 460), -30))
+        # rect coords are ints; keep a float for sub-pixel fall speed.
+        self._y = float(self.rect.y)
 
     @classmethod
     def get_img(cls):
@@ -24,12 +30,6 @@ class Apple:
             cls._img = pygame.image.load(path).convert_alpha()
         return cls._img
 
-    def move(self):
-        self.appley += self.speed
-
-    def display(self, screen, fx=1.0, fy=1.0):
-        # Coords/size are authored in base space; scale to the live window.
-        img = pygame.transform.scale(
-            self.get_img(), (max(1, int(self.size * fx)), max(1, int(self.size * fy)))
-        )
-        screen.blit(img, (int(self.applex * fx), int(self.appley * fy)))
+    def update(self):
+        self._y += self.speed
+        self.rect.y = round(self._y)
