@@ -15,9 +15,9 @@ pygame.init()
 CANVAS_SIZE = (500, 500)
 WHITE = (255, 255, 255)
 
-screen = pygame.display.set_mode((500, 500), pygame.RESIZABLE)
+screen = pygame.display.set_mode((750, 750), pygame.RESIZABLE)
 pygame.display.set_caption("Apple Catcher")
-canvas = pygame.Surface(CANVAS_SIZE)
+canvas = pygame.Surface(CANVAS_SIZE)    
 clock = pygame.time.Clock()
 running = True
 
@@ -119,6 +119,10 @@ SHOP_TRAIL = pygame.Rect(230, 150, 80, 30)
 # ----------------------------------------------------------------------
 
 basket_rect = pygame.Rect(191, 220, 100, 50)
+
+player1_pos = pygame.Vector2(100, 400)
+player2_pos = pygame.Vector2(400, 400)
+
 apples = pygame.sprite.Group()
 boosters = pygame.sprite.Group()
 score = 0
@@ -531,6 +535,16 @@ def update_and_draw_play():
             trailPoints.pop(0)
         draw_trail()
 
+    player1_pos = pygame.Vector2(0, 500)
+    
+    print(player1_pos) # (0, 500)
+    
+    # x variable
+    print(player1_pos.x) # 0
+    print(player1_pos.y) # 500
+    
+    print(basket_rect) # (191, 220)
+
     draw_img(current_basket_img(), basket_rect.x, basket_rect.y, 100, 50)
 
     # Apples: a loose catch box around the basket; missed if they fall past 425.
@@ -573,6 +587,10 @@ def update_and_draw_play():
     draw_img(pauseimg, 448, 11, 50, 50)
 
 
+def draw_1v1():
+    player1_rect = pygame.Rect(player1_pos.x, player1_pos.y, 50, 50)
+    player2_rect = pygame.Rect(player2_pos.x, player2_pos.y, 50, 50)
+    
     
 
 
@@ -610,6 +628,8 @@ while running:
             basket_rect.y += speed
         if (keys[pygame.K_UP] or keys[pygame.K_w]) and basket_rect.y >= 0:
             basket_rect.y -= speed
+            
+    
 
     if gameState not in ("settings", "gameOver"):
         canvas.fill(bgColors[bgIndex])
@@ -636,6 +656,8 @@ while running:
         draw_game_over()
     elif gameState == "play":
         update_and_draw_play()
+    elif gameState == "1v1":
+        draw_1v1()
 
     if showCords:
         mx, my = mouse_canvas()
