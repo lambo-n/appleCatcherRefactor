@@ -125,7 +125,9 @@ player2_pos = pygame.Vector2(400, 400)
 
 apples = pygame.sprite.Group()
 boosters = pygame.sprite.Group()
-score = 0
+score = 0   
+p1_score = 0
+p2_score = 0
 lives = 3
 difficulty = 3
 gameState = "menu"
@@ -588,9 +590,13 @@ def update_and_draw_play():
 
 
 def draw_1v1():
+    canvas.fill("black")    
+    
     player1_rect = pygame.Rect(player1_pos.x, player1_pos.y, 50, 50)
     player2_rect = pygame.Rect(player2_pos.x, player2_pos.y, 50, 50)
     
+    draw_text("Player 1 score: " + str(p1_score), 20, 20, 20, (255, 0, 0))
+    draw_text("Player 2 score: " + str(p2_score), 350, 20, 20, (255, 0, 0))
     
 
 
