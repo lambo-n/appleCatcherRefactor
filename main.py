@@ -4,7 +4,7 @@
 # pygame calls (pygame.Rect, pygame.draw, pygame.font, Sprite/Group). The
 # canvas is then scaled once to the live window, so the game scales cleanly
 # without any per-primitive scaling math.
-import pygame
+import pygame 
 import random
 import os
 from apple import Apple
@@ -15,7 +15,7 @@ pygame.init()
 CANVAS_SIZE = (500, 500)
 WHITE = (255, 255, 255)
 
-screen = pygame.display.set_mode((600, 600), pygame.RESIZABLE)
+screen = pygame.display.set_mode((500, 500), pygame.RESIZABLE)
 pygame.display.set_caption("Apple Catcher")
 canvas = pygame.Surface(CANVAS_SIZE)
 clock = pygame.time.Clock()
@@ -82,6 +82,10 @@ def draw_text_centered(msg, rect, size, color):
     surf = get_font(size).render(str(msg), True, color)
     canvas.blit(surf, surf.get_rect(center=rect.center))
 
+def display_time_left():
+    global timeLeft
+    draw_text("Time Left: " + str(timeLeft), 20, 25, 15, (255, 0, 0), anchor="midtop")
+
 
 # ----------------------------------------------------------------------
 # Layout: button hitboxes as pygame.Rect (canvas space)
@@ -97,7 +101,7 @@ BTN_LEVEL3 = pygame.Rect(325, 200, 100, 50)
 BTN_SHOP = pygame.Rect(200, 350, 100, 50)
 BTN_SETTINGS_MENU = pygame.Rect(0, 0, 50, 50)
 BTN_CONTINUE = pygame.Rect(50, 0, 100, 50)
-
+BTN_1v1 = pygame.Rect(200,280,100,50)
 BTN_SETTINGS_BACK = pygame.Rect(410, 460, 90, 40)
 BTN_BG_COLOR = pygame.Rect(110, 120, 270, 50)
 BTN_CORDS = pygame.Rect(110, 180, 270, 50)
@@ -134,6 +138,9 @@ trailMaxLength = 30
 save = False
 saveLevel = 1
 showCords = True
+timerEvent = pygame.USEREVENT + 1
+pygame.time.set_timer(timerEvent, 9000)
+timeLeft = 90
 
 bgColors = [
     (21, 39, 237), (219, 98, 22), (56, 217, 75), (245, 232, 93),
@@ -200,7 +207,7 @@ def show_lives():
 
 def start_game(level):
     global difficulty, baseSpeed, saveLevel, speed, speedBoostTimer, gameState
-    global score, lives
+    global score, lives, alps, save, timeLeft
     if level == 1:
         difficulty, baseSpeed, saveLevel = 1, 9, 1
     elif level == 2:
@@ -261,7 +268,8 @@ def handle_keydown(event):
     elif gameState == "gameOver":
         if k == pygame.K_SPACE:
             gameState = "menu"
-
+    elif gameState =="1v1":
+        pass 
 
 def handle_mouse_click(pos):
     global gameState, save, previousState, bgIndex, showCords
@@ -318,6 +326,11 @@ def handle_mouse_click(pos):
             previousState = "menu"
             gameState = "settings"
             return
+        if BTN_1v1.collidepoint(p):
+            gameState = "1v1"
+            return
+            
+        
         if save and BTN_CONTINUE.collidepoint(p):
             gameState = "paused"
             return
@@ -386,7 +399,7 @@ def handle_mouse_click(pos):
 # ----------------------------------------------------------------------
 
 def draw_menu():
-    for r in (BTN_LEVEL1, BTN_LEVEL2, BTN_LEVEL3, BTN_SHOP, BTN_SETTINGS_MENU):
+    for r in (BTN_LEVEL1, BTN_LEVEL2, BTN_LEVEL3, BTN_SHOP, BTN_SETTINGS_MENU,BTN_1v1):
         pygame.draw.rect(canvas, WHITE, r)
     draw_img(settings_img, -10, 0, 70, 50)
 
@@ -395,7 +408,7 @@ def draw_menu():
     draw_text_centered("Level 2", BTN_LEVEL2, 20, c)
     draw_text_centered("Level 3", BTN_LEVEL3, 20, c)
     draw_text_centered("Shop", BTN_SHOP, 20, c)
-
+    draw_text_centered("1v1",BTN_1v1,20,c)
     if save:
         pygame.draw.rect(canvas, WHITE, BTN_CONTINUE)
         draw_text_centered("Continue", pygame.Rect(50, 0, 100, 25), 17, (31, 150, 25))
@@ -450,7 +463,7 @@ def draw_shop():
 
 def draw_settings():
     canvas.fill(bgSettings[bgIndex])
-    draw_text("SETTINGS", 150, 30, 40, WHITE)
+    draw_text("SETTINGS", 173, 60, 40, WHITE)
 
     pygame.draw.rect(canvas, WHITE, BTN_SETTINGS_BACK)
     draw_text_centered("Back", BTN_SETTINGS_BACK, 18, (0, 0, 0))
@@ -489,13 +502,13 @@ def draw_paused():
 def draw_game_over():
     canvas.fill((0, 0, 0))
     draw_text("GAME OVER", 55, 190, 90, (80, 240, 31))
-    draw_text("Final Score: " + str(score), 138, 395, 35, (73, 217, 48))
+    draw_text("Final Score: " + str(score), 163, 395, 35, (73, 217, 48))
     pygame.draw.rect(canvas, (80, 240, 31), BTN_GAMEOVER_MENU)
     draw_text_centered("MENU", BTN_GAMEOVER_MENU, 40, (35, 161, 156))
 
 
 def update_and_draw_play():
-    global speed, speedBoostTimer, boosterSpawnCooldown, score, lives, alps, gameState
+    global speed, speedBoostTimer, boosterSpawnCooldown, score, lives, alps, gameState,timeLeft
 
     if random.randint(1, 57) == 8:
         apples.add(Apple(difficulty))
@@ -548,7 +561,7 @@ def update_and_draw_play():
     boosters.draw(canvas)
 
     if speedBoostTimer > 0:
-        draw_text("Boost!", 210, 65, 22, (255, 230, 0))
+        draw_text("Boost!", 227, 65, 22, (255, 230, 0))
 
     if lives <= 0:
         gameState = "gameOver"
@@ -578,6 +591,14 @@ while running:
             handle_keydown(event)
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             handle_mouse_click(event.pos)
+
+        elif event.type == timerEvent:
+            if timeLeft > 0 and gameState == "1v1":
+                timeLeft -= 1
+                display_time_left()
+            elif timeLeft <= 0 and gameState == "1v1":
+                gameState = "gameOver"
+
 
     if gameState == "play":
         keys = pygame.key.get_pressed()
@@ -622,7 +643,8 @@ while running:
                   anchor="bottomleft")
 
     # Scale the fixed canvas up to the live window and present.
-    pygame.transform.scale(canvas, screen.get_size(), screen)
+    # smoothscale anti-aliases the upscale so text/edges aren't pixelated.
+    pygame.transform.smoothscale(canvas, screen.get_size(), screen)
     pygame.display.flip()
     clock.tick(60)
 
