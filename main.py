@@ -15,7 +15,7 @@ pygame.init()
 CANVAS_SIZE = (500, 500)
 WHITE = (255, 255, 255)
 
-screen = pygame.display.set_mode((750, 750), pygame.RESIZABLE)
+screen = pygame.display.set_mode((650, 650), pygame.RESIZABLE)
 pygame.display.set_caption("Apple Catcher")
 canvas = pygame.Surface(CANVAS_SIZE)    
 clock = pygame.time.Clock()
@@ -82,9 +82,14 @@ def draw_text_centered(msg, rect, size, color):
     surf = get_font(size).render(str(msg), True, color)
     canvas.blit(surf, surf.get_rect(center=rect.center))
 
+def format_time(seconds):
+    minutes = seconds // 60
+    seconds = seconds % 60
+    return f"{minutes}:{seconds:02d}"
+
 def display_time_left():
     global timeLeft
-    draw_text("Time Left: " + str(timeLeft), 20, 25, 15, (255, 0, 0), anchor="midtop")
+    draw_text("Time Left: " + format_time(timeLeft), 176, 26, 25, (255, 0, 0), anchor="midleft")
 
 
 # ----------------------------------------------------------------------
@@ -123,6 +128,9 @@ basket_rect = pygame.Rect(191, 220, 100, 50)
 player1_pos = pygame.Vector2(100, 400)
 player2_pos = pygame.Vector2(400, 400)
 
+player1_rect = pygame.Rect(player1_pos.x, player1_pos.y, 100, 50)
+player2_rect = pygame.Rect(player2_pos.x, player2_pos.y, 100, 50)
+
 apples = pygame.sprite.Group()
 boosters = pygame.sprite.Group()
 score = 0   
@@ -145,7 +153,7 @@ save = False
 saveLevel = 1
 showCords = True
 timerEvent = pygame.USEREVENT + 1
-pygame.time.set_timer(timerEvent, 9000)
+pygame.time.set_timer(timerEvent, 900)
 timeLeft = 90
 
 bgColors = [
@@ -274,8 +282,7 @@ def handle_keydown(event):
     elif gameState == "gameOver":
         if k == pygame.K_SPACE:
             gameState = "menu"
-    elif gameState =="1v1":
-        pass 
+
 
 def handle_mouse_click(pos):
     global gameState, save, previousState, bgIndex, showCords
@@ -537,15 +544,6 @@ def update_and_draw_play():
             trailPoints.pop(0)
         draw_trail()
 
-    player1_pos = pygame.Vector2(0, 500)
-    
-    print(player1_pos) # (0, 500)
-    
-    # x variable
-    print(player1_pos.x) # 0
-    print(player1_pos.y) # 500
-    
-    print(basket_rect) # (191, 220)
 
     draw_img(current_basket_img(), basket_rect.x, basket_rect.y, 100, 50)
 
@@ -590,10 +588,12 @@ def update_and_draw_play():
 
 
 def draw_1v1():
-    canvas.fill("black")    
-    
-    player1_rect = pygame.Rect(player1_pos.x, player1_pos.y, 50, 50)
-    player2_rect = pygame.Rect(player2_pos.x, player2_pos.y, 50, 50)
+    canvas.fill((21, 39, 237))
+
+    display_time_left()
+
+    draw_img(current_basket_img(), player1_rect.x, player1_rect.y, 100, 50)
+    draw_img(current_basket_img(), player2_rect.x, player2_rect.y, 100, 50)
     
     draw_text("Player 1 score: " + str(p1_score), 20, 20, 20, (255, 0, 0))
     draw_text("Player 2 score: " + str(p2_score), 350, 20, 20, (255, 0, 0))
@@ -634,6 +634,26 @@ while running:
             basket_rect.y += speed
         if (keys[pygame.K_UP] or keys[pygame.K_w]) and basket_rect.y >= 0:
             basket_rect.y -= speed
+    
+    elif gameState =="1v1":
+        keys = pygame.key.get_pressed()
+        if (keys[pygame.K_a]) and player1_rect.x >= 0:
+            player1_rect.x -= speed
+        if (keys[pygame.K_d]) and player1_rect.x <= 400:
+            player1_rect.x += speed
+        if (keys[pygame.K_s]) and player1_rect.y <= 450:
+            player1_rect.y += speed
+        if (keys[pygame.K_w]) and player1_rect.y >= 0:
+            player1_rect.y -= speed
+        
+        if (keys[pygame.K_LEFT]) and player2_rect.x >= 0:
+            player2_rect.x -= speed
+        if (keys[pygame.K_RIGHT]) and player2_rect.x <= 400:
+            player2_rect.x += speed
+        if (keys[pygame.K_DOWN]) and player2_rect.y <= 450:
+            player2_rect.y += speed
+        if (keys[pygame.K_UP]) and player2_rect.y >= 0:
+            player2_rect.y -= speed
             
     
 
