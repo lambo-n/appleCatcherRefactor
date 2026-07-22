@@ -405,6 +405,12 @@ def handle_mouse_click(pos):
             trailEquipped = not trailEquipped
             trailPoints = []
             return
+    if gs == "1v1": 
+        if pygame.Rect(448.5, 448, 50, 50).collidepoint(p):
+            gameState = "paused1v1"
+            return 
+
+
 
 
 # ----------------------------------------------------------------------
@@ -511,6 +517,22 @@ def draw_paused():
     if speedBoostTimer > 0:
         draw_text("BOOST READY", 180, 80, 20, (255, 240, 0))
 
+def draw_paused1v1():
+    draw_basket_and_entities()
+
+    pygame.draw.rect(canvas, WHITE, BTN_PAUSE)
+    draw_img(resumeimg, 448, 11, 50, 50)
+    pygame.draw.rect(canvas, WHITE, BTN_MENU_PAUSED)
+    draw_text_centered("Menu", BTN_MENU_PAUSED, 20, (0, 0, 0))
+    pygame.draw.rect(canvas, WHITE, BTN_SETTINGS_PAUSED)
+    draw_img(settings_img, 244, 11, 70, 50)
+
+    if speedBoostTimer > 0:
+        draw_text("BOOST READY", 180, 80, 20, (255, 240, 0))
+
+
+
+
 
 def draw_game_over():
     canvas.fill((0, 0, 0))
@@ -598,6 +620,10 @@ def draw_1v1():
     draw_text("Player 1 score: " + str(p1_score), 20, 20, 20, (255, 0, 0))
     draw_text("Player 2 score: " + str(p2_score), 350, 20, 20, (255, 0, 0))
     
+    pygame.draw.rect(canvas, WHITE, pygame.Rect(448.5, 448, 50, 50)) 
+    draw_img(pauseimg, 448, 448, 50, 50)
+
+
 
 
 # ----------------------------------------------------------------------
@@ -622,6 +648,8 @@ while running:
                 display_time_left()
             elif timeLeft <= 0 and gameState == "1v1":
                 gameState = "gameOver"
+                timeLeft = 90
+
 
 
     if gameState == "play":
@@ -634,6 +662,10 @@ while running:
             basket_rect.y += speed
         if (keys[pygame.K_UP] or keys[pygame.K_w]) and basket_rect.y >= 0:
             basket_rect.y -= speed
+
+
+
+
     
     elif gameState =="1v1":
         keys = pygame.key.get_pressed()
@@ -678,6 +710,8 @@ while running:
         draw_settings()
     elif gameState == "paused":
         draw_paused()
+    elif gameState == "paused1v1":
+        draw_paused1v1()    
     elif gameState == "gameOver":
         draw_game_over()
     elif gameState == "play":
