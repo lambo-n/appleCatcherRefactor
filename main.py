@@ -100,6 +100,9 @@ BTN_PAUSE = pygame.Rect(447, 10, 50, 50)
 BTN_MENU_PAUSED = pygame.Rect(320, 11, 100, 50)
 BTN_SETTINGS_PAUSED = pygame.Rect(254, 11, 50, 50)
 
+BTN_1V1_RESUME = pygame.Rect(447, 10, 50, 50)
+BTN_1V1_PAUSE = pygame.Rect(448.5, 448, 50, 50)
+
 BTN_LEVEL1 = pygame.Rect(75, 200, 100, 50)
 BTN_LEVEL2 = pygame.Rect(200, 200, 100, 50)
 BTN_LEVEL3 = pygame.Rect(325, 200, 100, 50)
@@ -300,6 +303,16 @@ def handle_mouse_click(pos):
         if gs == "paused":
             gameState = "play"
             return
+    
+    if BTN_1V1_PAUSE.collidepoint(p):
+        if gs == "1v1":
+            gameState = "paused1v1"
+            return
+    
+    if BTN_1V1_RESUME.collidepoint(p):
+        if gs == "paused1v1":
+            gameState = "1v1"
+            return
 
     if gs == "paused":
         if BTN_MENU_PAUSED.collidepoint(p):
@@ -405,10 +418,18 @@ def handle_mouse_click(pos):
             trailEquipped = not trailEquipped
             trailPoints = []
             return
-    if gs == "1v1": 
-        if pygame.Rect(448.5, 448, 50, 50).collidepoint(p):
-            gameState = "paused1v1"
-            return 
+
+    if gs == "paused1v1":
+        if BTN_MENU_PAUSED.collidepoint(p):
+            gameState = "menu"
+            save = True
+            return
+        
+        if BTN_SETTINGS_PAUSED.collidepoint(p):
+            previousState = "paused1v1"
+            gameState = "settings"
+            return
+        
 
 
 
@@ -502,6 +523,18 @@ def draw_basket_and_entities():
     boosters.draw(canvas)
     show_score()
     show_lives()
+    
+def draw_basket_and_entities_1v1():
+    display_time_left()
+
+    draw_img(current_basket_img(), player1_rect.x, player1_rect.y, 100, 50)
+    draw_img(current_basket_img(), player2_rect.x, player2_rect.y, 100, 50)
+    
+    draw_text("Player 1 score: " + str(p1_score), 20, 20, 20, (255, 0, 0))
+    draw_text("Player 2 score: " + str(p2_score), 350, 20, 20, (255, 0, 0))
+    
+
+    
 
 
 def draw_paused():
@@ -518,7 +551,7 @@ def draw_paused():
         draw_text("BOOST READY", 180, 80, 20, (255, 240, 0))
 
 def draw_paused1v1():
-    draw_basket_and_entities()
+    draw_basket_and_entities_1v1()
 
     pygame.draw.rect(canvas, WHITE, BTN_PAUSE)
     draw_img(resumeimg, 448, 11, 50, 50)
@@ -620,7 +653,7 @@ def draw_1v1():
     draw_text("Player 1 score: " + str(p1_score), 20, 20, 20, (255, 0, 0))
     draw_text("Player 2 score: " + str(p2_score), 350, 20, 20, (255, 0, 0))
     
-    pygame.draw.rect(canvas, WHITE, pygame.Rect(448.5, 448, 50, 50)) 
+    pygame.draw.rect(canvas, WHITE, pygame.Rect(BTN_1V1_PAUSE)) 
     draw_img(pauseimg, 448, 448, 50, 50)
 
 
