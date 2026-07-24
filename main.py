@@ -530,6 +530,9 @@ def draw_basket_and_entities_1v1():
     draw_img(current_basket_img(), player1_rect.x, player1_rect.y, 100, 50)
     draw_img(current_basket_img(), player2_rect.x, player2_rect.y, 100, 50)
     
+    draw_text("Basket 1", player1_rect.x+30, player1_rect.y+30, 20, "turquoise")
+    draw_text("Basket 2", player2_rect.x+30, player2_rect.y+30, 20, "turquoise")
+
     draw_text("Player 1 score: " + str(p1_score), 20, 20, 20, (255, 0, 0))
     draw_text("Player 2 score: " + str(p2_score), 350, 20, 20, (255, 0, 0))
     
@@ -645,13 +648,7 @@ def update_and_draw_play():
 def draw_1v1():
     canvas.fill((21, 39, 237))
 
-    display_time_left()
-
-    draw_img(current_basket_img(), player1_rect.x, player1_rect.y, 100, 50)
-    draw_img(current_basket_img(), player2_rect.x, player2_rect.y, 100, 50)
-    
-    draw_text("Player 1 score: " + str(p1_score), 20, 20, 20, (255, 0, 0))
-    draw_text("Player 2 score: " + str(p2_score), 350, 20, 20, (255, 0, 0))
+    draw_basket_and_entities_1v1()
     
     pygame.draw.rect(canvas, WHITE, pygame.Rect(BTN_1V1_PAUSE)) 
     draw_img(pauseimg, 448, 448, 50, 50)
