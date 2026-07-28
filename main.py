@@ -8,8 +8,10 @@ import pygame
 import random
 import os
 from apple import Apple
+import apple
 from booster import Booster
-
+from twoplayerapples import Apple
+import twoplayerapples
 pygame.init()
 
 CANVAS_SIZE = (500, 500)
@@ -143,7 +145,7 @@ lives = 3
 difficulty = 3
 gameState = "menu"
 previousState = "menu"
-alps = 100
+alps = 0
 speed = 9
 baseSpeed = 9
 speedBoostTimer = 0
@@ -530,12 +532,13 @@ def draw_basket_and_entities_1v1():
     draw_img(current_basket_img(), player1_rect.x, player1_rect.y, 100, 50)
     draw_img(current_basket_img(), player2_rect.x, player2_rect.y, 100, 50)
     
-    draw_text("Basket 1", player1_rect.x+30, player1_rect.y+30, 20, "turquoise")
-    draw_text("Basket 2", player2_rect.x+30, player2_rect.y+30, 20, "turquoise")
+    draw_text("Basket 1", player1_rect.x+22, player1_rect.y+29.5, 20, "yellow")
+    draw_text("Basket 2", player2_rect.x+22, player2_rect.y+29.5, 20, "yellow")
 
     draw_text("Player 1 score: " + str(p1_score), 20, 20, 20, (255, 0, 0))
     draw_text("Player 2 score: " + str(p2_score), 350, 20, 20, (255, 0, 0))
     
+    apples.draw(canvas) 
 
     
 
@@ -566,9 +569,7 @@ def draw_paused1v1():
     if speedBoostTimer > 0:
         draw_text("BOOST READY", 180, 80, 20, (255, 240, 0))
 
-
-
-
+    twoplayerapples.draw(canvas)
 
 def draw_game_over():
     canvas.fill((0, 0, 0))
@@ -652,6 +653,7 @@ def draw_1v1():
     
     pygame.draw.rect(canvas, WHITE, pygame.Rect(BTN_1V1_PAUSE)) 
     draw_img(pauseimg, 448, 448, 50, 50)
+
 
 
 
