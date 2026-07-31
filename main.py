@@ -8,10 +8,7 @@ import pygame
 import random
 import os
 from apple import Apple
-import apple
 from booster import Booster
-from twoplayerapples import Apple
-import twoplayerapples
 pygame.init()
 
 CANVAS_SIZE = (500, 500)
@@ -442,7 +439,7 @@ def handle_mouse_click(pos):
 
 def draw_menu():
     for r in (BTN_LEVEL1, BTN_LEVEL2, BTN_LEVEL3, BTN_SHOP, BTN_SETTINGS_MENU,BTN_1v1):
-        pygame.draw.rect(canvas, WHITE, r)
+        pygame.draw.rect(canvas, WHITE, r, border_radius=15)
     draw_img(settings_img, -10, 0, 70, 50)
 
     c = (31, 150, 255)
@@ -452,7 +449,7 @@ def draw_menu():
     draw_text_centered("Shop", BTN_SHOP, 20, c)
     draw_text_centered("1v1",BTN_1v1,20,c)
     if save:
-        pygame.draw.rect(canvas, WHITE, BTN_CONTINUE)
+        pygame.draw.rect(canvas, WHITE, BTN_CONTINUE, border_radius=15)
         draw_text_centered("Continue", pygame.Rect(50, 0, 100, 25), 17, (31, 150, 25))
         draw_text_centered("Level " + str(saveLevel),
                            pygame.Rect(50, 25, 100, 25), 17, (31, 150, 25))
@@ -487,7 +484,7 @@ def draw_shop():
     pygame.draw.rect(canvas, WHITE, pygame.Rect(0, 0, 500, 50))
     draw_text_centered("WELCOME TO THE SHOP", pygame.Rect(0, 0, 500, 50), 40, (237, 22, 22))
 
-    pygame.draw.rect(canvas, WHITE, BTN_SHOP_BACK)
+    pygame.draw.rect(canvas, WHITE, BTN_SHOP_BACK, border_radius=15)
     draw_text_centered("Back To Menu", BTN_SHOP_BACK, 14, (237, 22, 22))
 
     _draw_shop_item(SHOP_ORANGE, pygame.Rect(10, 70, 80, 70), orangeOwned,
@@ -507,14 +504,15 @@ def draw_settings():
     canvas.fill(bgSettings[bgIndex])
     draw_text("SETTINGS", 173, 60, 40, WHITE)
 
-    pygame.draw.rect(canvas, WHITE, BTN_SETTINGS_BACK)
+    pygame.draw.rect(canvas, WHITE, BTN_SETTINGS_BACK, border_radius=15)
     draw_text_centered("Back", BTN_SETTINGS_BACK, 18, (0, 0, 0))
 
-    pygame.draw.rect(canvas, (220, 220, 220), BTN_BG_COLOR)
+    pygame.draw.rect(canvas, (220, 220, 220), BTN_BG_COLOR, border_radius=15)
     draw_text_centered("Background color", BTN_BG_COLOR, 18, (0, 0, 0))
 
-    pygame.draw.rect(canvas, (220, 220, 220), BTN_CORDS)
+    pygame.draw.rect(canvas, (220, 220, 220), BTN_CORDS, border_radius=15)
     draw_text_centered("Cords:ON" if showCords else "Cords:OFF", BTN_CORDS, 18, (0, 0, 0))
+    
 
 
 def draw_basket_and_entities():
@@ -545,13 +543,19 @@ def draw_basket_and_entities_1v1():
 
 def draw_paused():
     draw_basket_and_entities()
+    
+    draw_img(alpsimg, 220, -50, 200, 200)
+    draw_text(":", 345, 27, 20, (48, 217, 205))
+    draw_text(str(alps), 357, 27, 20, (48, 217, 205))
 
-    pygame.draw.rect(canvas, WHITE, BTN_PAUSE)
+    pygame.draw.rect(canvas, WHITE, BTN_PAUSE, border_radius=15)
     draw_img(resumeimg, 448, 11, 50, 50)
-    pygame.draw.rect(canvas, WHITE, BTN_MENU_PAUSED)
+    pygame.draw.rect(canvas, WHITE, BTN_MENU_PAUSED, border_radius=15)
     draw_text_centered("Menu", BTN_MENU_PAUSED, 20, (0, 0, 0))
-    pygame.draw.rect(canvas, WHITE, BTN_SETTINGS_PAUSED)
+    pygame.draw.rect(canvas, WHITE, BTN_SETTINGS_PAUSED, border_radius=15)
     draw_img(settings_img, 244, 11, 70, 50)
+    
+
 
     if speedBoostTimer > 0:
         draw_text("BOOST READY", 180, 80, 20, (255, 240, 0))
@@ -559,23 +563,22 @@ def draw_paused():
 def draw_paused1v1():
     draw_basket_and_entities_1v1()
 
-    pygame.draw.rect(canvas, WHITE, BTN_PAUSE)
+    pygame.draw.rect(canvas, WHITE, BTN_PAUSE, border_radius=15)
     draw_img(resumeimg, 448, 11, 50, 50)
-    pygame.draw.rect(canvas, WHITE, BTN_MENU_PAUSED)
+    pygame.draw.rect(canvas, WHITE, BTN_MENU_PAUSED, border_radius=15)
     draw_text_centered("Menu", BTN_MENU_PAUSED, 20, (0, 0, 0))
-    pygame.draw.rect(canvas, WHITE, BTN_SETTINGS_PAUSED)
+    pygame.draw.rect(canvas, WHITE, BTN_SETTINGS_PAUSED, border_radius=15)
     draw_img(settings_img, 244, 11, 70, 50)
 
-    if speedBoostTimer > 0:
-        draw_text("BOOST READY", 180, 80, 20, (255, 240, 0))
+  
 
-    twoplayerapples.draw(canvas)
+    apples.draw(canvas)
 
 def draw_game_over():
     canvas.fill((0, 0, 0))
     draw_text("GAME OVER", 55, 190, 90, (80, 240, 31))
     draw_text("Final Score: " + str(score), 163, 395, 35, (73, 217, 48))
-    pygame.draw.rect(canvas, (80, 240, 31), BTN_GAMEOVER_MENU)
+    pygame.draw.rect(canvas, (80, 240, 31), BTN_GAMEOVER_MENU, border_radius=15)
     draw_text_centered("MENU", BTN_GAMEOVER_MENU, 40, (35, 161, 156))
 
 
@@ -603,6 +606,9 @@ def update_and_draw_play():
             trailPoints.pop(0)
         draw_trail()
 
+    draw_img(alpsimg, 220, -50, 200, 200)
+    draw_text(":", 345, 27, 20, (48, 217, 205))
+    draw_text(str(alps), 357, 27, 20, (48, 217, 205))
 
     draw_img(current_basket_img(), basket_rect.x, basket_rect.y, 100, 50)
 
@@ -642,16 +648,35 @@ def update_and_draw_play():
     show_score()
     show_lives()
 
-    pygame.draw.rect(canvas, WHITE, BTN_PAUSE)
+    pygame.draw.rect(canvas, WHITE, BTN_PAUSE, border_radius=15)
     draw_img(pauseimg, 448, 11, 50, 50)
 
 
 def draw_1v1():
+    global p1_score, p2_score
     canvas.fill((21, 39, 237))
+    
+    if random.randint(1, 57) == 8:
+        apples.add(Apple(difficulty))
+        
+    apples.update()
+    
+    player1_hitbox = pygame.Rect(player1_rect.x - 49, player1_rect.y - 49, 149, 49)
+    player2_hitbox = pygame.Rect(player2_rect.x - 49, player2_rect.y - 49, 149, 49)
+    
+    for apple in list(apples):
+            if apple.rect.top >= 425:
+                apple.kill()
+            elif player1_hitbox.collidepoint(apple.rect.topleft):
+                apple.kill()
+                p1_score += 1
+            elif player2_hitbox.collidepoint(apple.rect.topleft):
+                apple.kill()
+                p2_score += 1
 
     draw_basket_and_entities_1v1()
     
-    pygame.draw.rect(canvas, WHITE, pygame.Rect(BTN_1V1_PAUSE)) 
+    pygame.draw.rect(canvas, WHITE, pygame.Rect(BTN_1V1_PAUSE), border_radius=15) 
     draw_img(pauseimg, 448, 448, 50, 50)
 
 
@@ -723,9 +748,7 @@ while running:
 
     if gameState not in ("settings", "gameOver"):
         canvas.fill(bgColors[bgIndex])
-        draw_img(alpsimg, 220, -50, 200, 200)
-        draw_text(":", 345, 27, 20, (48, 217, 205))
-        draw_text(str(alps), 357, 27, 20, (48, 217, 205))
+
 
     if orangeBoughtFlashFrames > 0:
         orangeBoughtFlashFrames -= 1
