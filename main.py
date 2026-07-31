@@ -439,7 +439,7 @@ def handle_mouse_click(pos):
 
 def draw_menu():
     for r in (BTN_LEVEL1, BTN_LEVEL2, BTN_LEVEL3, BTN_SHOP, BTN_SETTINGS_MENU,BTN_1v1):
-        pygame.draw.rect(canvas, WHITE, r, border_radius=15)
+        pygame.draw.rect(canvas, WHITE, r)
     draw_img(settings_img, -10, 0, 70, 50)
 
     c = (31, 150, 255)
@@ -449,7 +449,7 @@ def draw_menu():
     draw_text_centered("Shop", BTN_SHOP, 20, c)
     draw_text_centered("1v1",BTN_1v1,20,c)
     if save:
-        pygame.draw.rect(canvas, WHITE, BTN_CONTINUE, border_radius=15)
+        pygame.draw.rect(canvas, WHITE, BTN_CONTINUE)
         draw_text_centered("Continue", pygame.Rect(50, 0, 100, 25), 17, (31, 150, 25))
         draw_text_centered("Level " + str(saveLevel),
                            pygame.Rect(50, 25, 100, 25), 17, (31, 150, 25))
@@ -484,7 +484,7 @@ def draw_shop():
     pygame.draw.rect(canvas, WHITE, pygame.Rect(0, 0, 500, 50))
     draw_text_centered("WELCOME TO THE SHOP", pygame.Rect(0, 0, 500, 50), 40, (237, 22, 22))
 
-    pygame.draw.rect(canvas, WHITE, BTN_SHOP_BACK, border_radius=15)
+    pygame.draw.rect(canvas, WHITE, BTN_SHOP_BACK)
     draw_text_centered("Back To Menu", BTN_SHOP_BACK, 14, (237, 22, 22))
 
     _draw_shop_item(SHOP_ORANGE, pygame.Rect(10, 70, 80, 70), orangeOwned,
@@ -549,7 +549,7 @@ def draw_paused():
     draw_text(str(alps), 357, 27, 20, (48, 217, 205))
 
     pygame.draw.rect(canvas, WHITE, BTN_PAUSE, border_radius=15)
-    draw_img(resumeimg, 448, 11, 50, 50)
+    draw_img(resumeimg, 447, 10, 50, 50)
     pygame.draw.rect(canvas, WHITE, BTN_MENU_PAUSED, border_radius=15)
     draw_text_centered("Menu", BTN_MENU_PAUSED, 20, (0, 0, 0))
     pygame.draw.rect(canvas, WHITE, BTN_SETTINGS_PAUSED, border_radius=15)
@@ -606,7 +606,7 @@ def update_and_draw_play():
             trailPoints.pop(0)
         draw_trail()
 
-    draw_img(alpsimg, 220, -50, 200, 200)
+    draw_img(alpsimg, 220, -45, 200, 200)
     draw_text(":", 345, 27, 20, (48, 217, 205))
     draw_text(str(alps), 357, 27, 20, (48, 217, 205))
 
@@ -649,7 +649,7 @@ def update_and_draw_play():
     show_lives()
 
     pygame.draw.rect(canvas, WHITE, BTN_PAUSE, border_radius=15)
-    draw_img(pauseimg, 448, 11, 50, 50)
+    draw_img(pauseimg, 446, 10, 50, 50)
 
 
 def draw_1v1():
