@@ -121,6 +121,7 @@ SHOP_PEAR = pygame.Rect(120, 150, 80, 30)
 SHOP_TRAIL = pygame.Rect(230, 150, 80, 30)
 
 
+
 # ----------------------------------------------------------------------
 # Game state
 # ----------------------------------------------------------------------
@@ -156,7 +157,9 @@ saveLevel = 1
 showCords = True
 timerEvent = pygame.USEREVENT + 1
 pygame.time.set_timer(timerEvent, 900)
-timeLeft = 90
+timeLeft = 2
+tiebreaker_apples = 11
+
 
 bgColors = [
     (21, 39, 237), (219, 98, 22), (56, 217, 75), (245, 232, 93),
@@ -525,7 +528,7 @@ def draw_basket_and_entities():
     show_lives()
     
 def draw_basket_and_entities_1v1():
-    display_time_left()
+    
 
     draw_img(current_basket_img(), player1_rect.x, player1_rect.y, 100, 50)
     draw_img(current_basket_img(), player2_rect.x, player2_rect.y, 100, 50)
@@ -656,6 +659,8 @@ def draw_1v1():
     global p1_score, p2_score
     canvas.fill((21, 39, 237))
     
+    display_time_left()
+    
     if random.randint(1, 57) == 8:
         apples.add(Apple(difficulty))
         
@@ -678,7 +683,42 @@ def draw_1v1():
     
     pygame.draw.rect(canvas, WHITE, pygame.Rect(BTN_1V1_PAUSE), border_radius=15) 
     draw_img(pauseimg, 448, 448, 50, 50)
+    
+def draw_tiebreaker():
+    global p1_score, p2_score, tiebreaker_apples, gameState, apples
+    canvas.fill((21, 39, 237))
+    
+    if not apples:
+        apples.add(Apple(3))
+  
+        
+        
+    apples.update()
+    
+    player1_hitbox = pygame.Rect(player1_rect.x - 49, player1_rect.y - 49, 149, 49)
+    player2_hitbox = pygame.Rect(player2_rect.x - 49, player2_rect.y - 49, 149, 49)
+    
+    for apple in list(apples):
+            if apple.rect.top >= 425:
+                apple.kill()
+                tiebreaker_apples += 1
+            elif player1_hitbox.collidepoint(apple.rect.topleft):
+                apple.kill()
+                tiebreaker_apples -= 1
+                p1_score += 1
+            elif player2_hitbox.collidepoint(apple.rect.topleft):
+                apple.kill()
+                tiebreaker_apples -= 1
+                p2_score += 1
+                
+    if tiebreaker_apples <= 0 and not apples:
+        print("game over")
+        gameState = "gameOver"
 
+    draw_basket_and_entities_1v1()
+    
+    pygame.draw.rect(canvas, WHITE, pygame.Rect(BTN_1V1_PAUSE), border_radius=15) 
+    draw_img(pauseimg, 448, 448, 50, 50)
 
 
 
@@ -704,8 +744,14 @@ while running:
                 timeLeft -= 1
                 display_time_left()
             elif timeLeft <= 0 and gameState == "1v1":
-                gameState = "gameOver"
-                timeLeft = 90
+                if p1_score != p2_score:
+                    gameState = "gameOver"
+                    timeLeft = 90
+                else:
+                    gameState = "tiebreaker"
+                    apples.empty()
+                    print(apples)
+                
 
 
 
@@ -724,7 +770,7 @@ while running:
 
 
     
-    elif gameState =="1v1":
+    elif gameState =="1v1" or gameState == "tiebreaker":
         keys = pygame.key.get_pressed()
         if (keys[pygame.K_a]) and player1_rect.x >= 0:
             player1_rect.x -= speed
@@ -744,6 +790,7 @@ while running:
         if (keys[pygame.K_UP]) and player2_rect.y >= 0:
             player2_rect.y -= speed
             
+        
     
 
     if gameState not in ("settings", "gameOver"):
@@ -773,6 +820,8 @@ while running:
         update_and_draw_play()
     elif gameState == "1v1":
         draw_1v1()
+    elif gameState == "tiebreaker":
+        draw_tiebreaker()
 
     if showCords:
         mx, my = mouse_canvas()
