@@ -13,10 +13,12 @@ class Apple(pygame.sprite.Sprite):
         super().__init__()
         if difficulty == 1:
             self.speed = random.uniform(1.5, 3)
-        elif difficulty == 3:
+        elif difficulty == 2:
             self.speed = random.uniform(2.5, 5)
-        else:
-            self.speed = random.uniform(4, 8)
+        elif difficulty == 3:
+            self.speed = random.uniform(6, 8)
+        elif difficulty == 4:
+            self.speed = random.uniform(6, 9)
 
         self.image = pygame.transform.scale(self.get_img(), (self.SIZE, self.SIZE))
         self.rect = self.image.get_rect(topleft=(random.randint(0, 460), -30))

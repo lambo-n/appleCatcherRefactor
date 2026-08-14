@@ -157,7 +157,7 @@ saveLevel = 1
 showCords = True
 timerEvent = pygame.USEREVENT + 1
 pygame.time.set_timer(timerEvent, 900)
-timeLeft = 2
+timeLeft = 5
 tiebreaker_apples = 11
 
 
@@ -230,9 +230,9 @@ def start_game(level):
     if level == 1:
         difficulty, baseSpeed, saveLevel = 1, 9, 1
     elif level == 2:
-        difficulty, baseSpeed, saveLevel = 3, 9, 2
+        difficulty, baseSpeed, saveLevel = 2, 9, 2
     elif level == 3:
-        difficulty, baseSpeed, saveLevel = 6, 11, 3
+        difficulty, baseSpeed, saveLevel = 3, 11, 3
     speed = baseSpeed
     speedBoostTimer = 0
     boosters.empty()
@@ -293,8 +293,8 @@ def handle_mouse_click(pos):
     global gameState, save, previousState, bgIndex, showCords
     global orangeOwned, orangeEquipped, alps, orangeBoughtFlashFrames
     global pearOwned, pearEquipped, pearBoughtFlashFrames
-    global trailOwned, trailEquipped, trailPoints, trailBoughtFlashFrames
-    global speedBoostTimer, speed
+    global trailOwned, trailEquipped, trailPoints, trailBoughtFlashFrames, score, lives
+    global speedBoostTimer, speed, player1_rect, player2_rect, p1_score, p2_score, timeLeft, tiebreaker_apples
     p = to_canvas(pos)
     gs = gameState
 
@@ -306,10 +306,10 @@ def handle_mouse_click(pos):
             gameState = "play"
             return
     
-    if BTN_1V1_PAUSE.collidepoint(p):
-        if gs == "1v1":
-            gameState = "paused1v1"
-            return
+    # if BTN_1V1_PAUSE.collidepoint(p):
+    #     if gs == "1v1":
+    #         gameState = "paused1v1"
+    #         return
     
     if BTN_1V1_RESUME.collidepoint(p):
         if gs == "paused1v1":
@@ -376,6 +376,25 @@ def handle_mouse_click(pos):
             basket_rect.topleft = (191, 220)
             trailPoints = []
             return
+    
+    if gs == "gameOver1v1":
+        if BTN_GAMEOVER_MENU.collidepoint(p):
+            save = False
+            apples.empty()
+            boosters.empty()
+            gameState = "menu"
+            speedBoostTimer = 0
+            speed = baseSpeed
+            basket_rect.topleft = (191, 220)
+            trailPoints = []
+            player1_rect.x = 100
+            player1_rect.y = 400
+            player2_rect.x = 400
+            player2_rect.y = 400
+            p1_score = 0
+            p2_score = 0
+            return
+    
 
     if gs == "shop":
         if BTN_SHOP_BACK.collidepoint(p):
@@ -563,19 +582,19 @@ def draw_paused():
     if speedBoostTimer > 0:
         draw_text("BOOST READY", 180, 80, 20, (255, 240, 0))
 
-def draw_paused1v1():
-    draw_basket_and_entities_1v1()
+# def draw_paused1v1():
+#     draw_basket_and_entities_1v1()
 
-    pygame.draw.rect(canvas, WHITE, BTN_PAUSE, border_radius=15)
-    draw_img(resumeimg, 448, 11, 50, 50)
-    pygame.draw.rect(canvas, WHITE, BTN_MENU_PAUSED, border_radius=15)
-    draw_text_centered("Menu", BTN_MENU_PAUSED, 20, (0, 0, 0))
-    pygame.draw.rect(canvas, WHITE, BTN_SETTINGS_PAUSED, border_radius=15)
-    draw_img(settings_img, 244, 11, 70, 50)
+#     pygame.draw.rect(canvas, WHITE, BTN_PAUSE, border_radius=15)
+#     draw_img(resumeimg, 448, 11, 50, 50)
+#     pygame.draw.rect(canvas, WHITE, BTN_MENU_PAUSED, border_radius=15)
+#     draw_text_centered("Menu", BTN_MENU_PAUSED, 20, (0, 0, 0))
+#     pygame.draw.rect(canvas, WHITE, BTN_SETTINGS_PAUSED, border_radius=15)
+#     draw_img(settings_img, 244, 11, 70, 50)
 
   
 
-    apples.draw(canvas)
+#     apples.draw(canvas)
 
 def draw_game_over():
     canvas.fill((0, 0, 0))
@@ -584,6 +603,17 @@ def draw_game_over():
     pygame.draw.rect(canvas, (80, 240, 31), BTN_GAMEOVER_MENU, border_radius=15)
     draw_text_centered("MENU", BTN_GAMEOVER_MENU, 40, (35, 161, 156))
 
+def draw_1v1_game_over():
+    if p1_score > p2_score:
+        winner = "Basket 1 wins!"
+    else:
+        winner = "Basket 2 wins!"
+
+    canvas.fill((0, 0, 0))
+    draw_text("GAME OVER", 55, 190, 90, (80, 240, 31))
+    draw_text("Winner: " + winner, 113, 395, 35, (73, 217, 48))
+    pygame.draw.rect(canvas, (80, 240, 31), BTN_GAMEOVER_MENU, border_radius=15)
+    draw_text_centered("MENU", BTN_GAMEOVER_MENU, 40, (35, 161, 156))
 
 def update_and_draw_play():
     global speed, speedBoostTimer, boosterSpawnCooldown, score, lives, alps, gameState,timeLeft
@@ -656,13 +686,16 @@ def update_and_draw_play():
 
 
 def draw_1v1():
-    global p1_score, p2_score
+    global p1_score, p2_score, timeLeft, difficulty, speed
+    speed = 11
     canvas.fill((21, 39, 237))
     
     display_time_left()
     
+
+    
     if random.randint(1, 57) == 8:
-        apples.add(Apple(difficulty))
+        apples.add(Apple(4))
         
     apples.update()
     
@@ -681,8 +714,6 @@ def draw_1v1():
 
     draw_basket_and_entities_1v1()
     
-    pygame.draw.rect(canvas, WHITE, pygame.Rect(BTN_1V1_PAUSE), border_radius=15) 
-    draw_img(pauseimg, 448, 448, 50, 50)
     
 def draw_tiebreaker():
     global p1_score, p2_score, tiebreaker_apples, gameState, apples
@@ -700,8 +731,7 @@ def draw_tiebreaker():
     
     for apple in list(apples):
             if apple.rect.top >= 425:
-                apple.kill()
-                tiebreaker_apples += 1
+                apple.kill()    
             elif player1_hitbox.collidepoint(apple.rect.topleft):
                 apple.kill()
                 tiebreaker_apples -= 1
@@ -713,14 +743,9 @@ def draw_tiebreaker():
                 
     if tiebreaker_apples <= 0 and not apples:
         print("game over")
-        gameState = "gameOver"
+        gameState = "gameOver1v1"
 
     draw_basket_and_entities_1v1()
-    
-    pygame.draw.rect(canvas, WHITE, pygame.Rect(BTN_1V1_PAUSE), border_radius=15) 
-    draw_img(pauseimg, 448, 448, 50, 50)
-
-
 
 
 # ----------------------------------------------------------------------
@@ -745,7 +770,7 @@ while running:
                 display_time_left()
             elif timeLeft <= 0 and gameState == "1v1":
                 if p1_score != p2_score:
-                    gameState = "gameOver"
+                    gameState = "gameOver1v1"
                     timeLeft = 90
                 else:
                     gameState = "tiebreaker"
@@ -812,8 +837,8 @@ while running:
         draw_settings()
     elif gameState == "paused":
         draw_paused()
-    elif gameState == "paused1v1":
-        draw_paused1v1()    
+    # elif gameState == "paused1v1":
+    #     draw_paused1v1()    
     elif gameState == "gameOver":
         draw_game_over()
     elif gameState == "play":
@@ -822,6 +847,8 @@ while running:
         draw_1v1()
     elif gameState == "tiebreaker":
         draw_tiebreaker()
+    elif gameState == "gameOver1v1":
+        draw_1v1_game_over()
 
     if showCords:
         mx, my = mouse_canvas()
