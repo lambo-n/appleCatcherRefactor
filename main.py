@@ -88,7 +88,7 @@ def format_time(seconds):
 
 def display_time_left():
     global timeLeft
-    draw_text("Time Left: " + format_time(timeLeft), 176, 26, 25, (255, 0, 0), anchor="midleft")
+    draw_text("Time Left: " + format_time(timeLeft), 176, 28, 25, (255, 0, 0), anchor="midleft")
 
 
 # ----------------------------------------------------------------------
@@ -159,7 +159,7 @@ timerEvent = pygame.USEREVENT + 1
 pygame.time.set_timer(timerEvent, 900)
 timeLeft = 5
 tiebreaker_apples = 11
-
+tiebreaker_text_counter = 0
 
 bgColors = [
     (21, 39, 237), (219, 98, 22), (56, 217, 75), (245, 232, 93),
@@ -393,6 +393,7 @@ def handle_mouse_click(pos):
             player2_rect.y = 400
             p1_score = 0
             p2_score = 0
+            timeLeft = 90 
             return
     
 
@@ -611,7 +612,7 @@ def draw_1v1_game_over():
 
     canvas.fill((0, 0, 0))
     draw_text("GAME OVER", 55, 190, 90, (80, 240, 31))
-    draw_text("Winner: " + winner, 113, 395, 35, (73, 217, 48))
+    draw_text(winner, 160, 395, 35, (73, 217, 48))
     pygame.draw.rect(canvas, (80, 240, 31), BTN_GAMEOVER_MENU, border_radius=15)
     draw_text_centered("MENU", BTN_GAMEOVER_MENU, 40, (35, 161, 156))
 
@@ -716,36 +717,45 @@ def draw_1v1():
     
     
 def draw_tiebreaker():
-    global p1_score, p2_score, tiebreaker_apples, gameState, apples
+    global p1_score, p2_score, tiebreaker_apples, gameState, apples,tiebreaker_text_counter
     canvas.fill((21, 39, 237))
+    tiebreaker_text_counter += 1
+    if tiebreaker_text_counter < 120:
+        draw_text("TIEBREAKER!", 150, 200, 40, (255, 0, 0))
+        draw_text("First to 11 wins!", 143 , 250, 40, (255, 0, 0))
+    else:      
     
-    if not apples:
-        apples.add(Apple(3))
-  
-        
-        
-    apples.update()
-    
-    player1_hitbox = pygame.Rect(player1_rect.x - 49, player1_rect.y - 49, 149, 49)
-    player2_hitbox = pygame.Rect(player2_rect.x - 49, player2_rect.y - 49, 149, 49)
-    
-    for apple in list(apples):
-            if apple.rect.top >= 425:
-                apple.kill()    
-            elif player1_hitbox.collidepoint(apple.rect.topleft):
-                apple.kill()
-                tiebreaker_apples -= 1
-                p1_score += 1
-            elif player2_hitbox.collidepoint(apple.rect.topleft):
-                apple.kill()
-                tiebreaker_apples -= 1
-                p2_score += 1
-                
-    if tiebreaker_apples <= 0 and not apples:
-        print("game over")
-        gameState = "gameOver1v1"
+        draw_text("Apples left: " + str(tiebreaker_apples), 176, 28, 25, (255, 0, 0), anchor="midleft")
 
-    draw_basket_and_entities_1v1()
+
+        if not apples:
+            apples.add(Apple(3))
+    
+        
+
+            
+        apples.update()
+        
+        player1_hitbox = pygame.Rect(player1_rect.x - 49, player1_rect.y - 49, 149, 49)
+        player2_hitbox = pygame.Rect(player2_rect.x - 49, player2_rect.y - 49, 149, 49)
+        
+        for apple in list(apples):
+                if apple.rect.top >= 425:
+                    apple.kill()    
+                elif player1_hitbox.collidepoint(apple.rect.topleft):
+                    apple.kill()
+                    tiebreaker_apples -= 1
+                    p1_score += 1
+                elif player2_hitbox.collidepoint(apple.rect.topleft):
+                    apple.kill()
+                    tiebreaker_apples -= 1
+                    p2_score += 1
+                    
+        if tiebreaker_apples <= 0 and not apples:
+            print("game over")
+            gameState = "gameOver1v1"
+
+        draw_basket_and_entities_1v1()
 
 
 # ----------------------------------------------------------------------
@@ -776,7 +786,14 @@ while running:
                     gameState = "tiebreaker"
                     apples.empty()
                     print(apples)
-                
+                    player1_pos = pygame.Vector2(100, 400)
+                    player2_pos = pygame.Vector2(400, 400)
+                    p1_score = 0
+                    p2_score = 0
+                    tiebreaker_apples = 11
+                    tiebreaker_text_counter = 0
+                    player1_rect = pygame.Rect(player1_pos.x, player1_pos.y, 100, 50)
+                    player2_rect = pygame.Rect(player2_pos.x, player2_pos.y, 100, 50)
 
 
 
@@ -795,7 +812,7 @@ while running:
 
 
     
-    elif gameState =="1v1" or gameState == "tiebreaker":
+    elif gameState =="1v1":
         keys = pygame.key.get_pressed()
         if (keys[pygame.K_a]) and player1_rect.x >= 0:
             player1_rect.x -= speed
@@ -815,7 +832,25 @@ while running:
         if (keys[pygame.K_UP]) and player2_rect.y >= 0:
             player2_rect.y -= speed
             
+    elif gameState == "tiebreaker" and tiebreaker_text_counter >= 120:
+        keys = pygame.key.get_pressed()
+        if (keys[pygame.K_a]) and player1_rect.x >= 0:
+            player1_rect.x -= speed
+        if (keys[pygame.K_d]) and player1_rect.x <= 400:
+            player1_rect.x += speed
+        if (keys[pygame.K_s]) and player1_rect.y <= 450:
+            player1_rect.y += speed
+        if (keys[pygame.K_w]) and player1_rect.y >= 0:
+            player1_rect.y -= speed
         
+        if (keys[pygame.K_LEFT]) and player2_rect.x >= 0:
+            player2_rect.x -= speed
+        if (keys[pygame.K_RIGHT]) and player2_rect.x <= 400:
+            player2_rect.x += speed
+        if (keys[pygame.K_DOWN]) and player2_rect.y <= 450:
+            player2_rect.y += speed
+        if (keys[pygame.K_UP]) and player2_rect.y >= 0:
+            player2_rect.y -= speed   
     
 
     if gameState not in ("settings", "gameOver"):
