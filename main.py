@@ -108,7 +108,7 @@ BTN_LEVEL3 = pygame.Rect(325, 200, 100, 50)
 BTN_SHOP = pygame.Rect(200, 350, 100, 50)
 BTN_SETTINGS_MENU = pygame.Rect(0, 0, 50, 50)
 BTN_CONTINUE = pygame.Rect(50, 0, 100, 50)
-BTN_1v1 = pygame.Rect(200,280,100,50)
+BTN_1V1 = pygame.Rect(200,280,100,50)
 BTN_SETTINGS_BACK = pygame.Rect(410, 460, 90, 40)
 BTN_BG_COLOR = pygame.Rect(110, 120, 270, 50)
 BTN_CORDS = pygame.Rect(110, 180, 270, 50)
@@ -119,7 +119,7 @@ BTN_SHOP_BACK = pygame.Rect(0, 430, 100, 69)
 SHOP_ORANGE = pygame.Rect(10, 150, 80, 30)
 SHOP_PEAR = pygame.Rect(120, 150, 80, 30)
 SHOP_TRAIL = pygame.Rect(230, 150, 80, 30)
-
+BTN_P1_1V1_SHOP = pygame.Rect(386,390,100,50)
 
 
 # ----------------------------------------------------------------------
@@ -354,10 +354,11 @@ def handle_mouse_click(pos):
             previousState = "menu"
             gameState = "settings"
             return
-        if BTN_1v1.collidepoint(p):
-            gameState = "1v1"
+        if BTN_1V1.collidepoint(p):
+            gameState = "p1_1v1_shop"
             return
-            
+        if BTN_P1_1V1_SHOP.collidepoint(p):
+            gameState = "p2_1v1_shop"    
         
         if save and BTN_CONTINUE.collidepoint(p):
             gameState = "paused"
@@ -397,7 +398,7 @@ def handle_mouse_click(pos):
             return
     
 
-    if gs == "shop":
+    if gs == "shop" :
         if BTN_SHOP_BACK.collidepoint(p):
             gameState = "menu"
             return
@@ -441,6 +442,96 @@ def handle_mouse_click(pos):
             trailPoints = []
             return
 
+
+    if gs == "p1_1v1_shop":
+        if BTN_SHOP_BACK.collidepoint(p):
+            gameState = "menu"
+            return
+        if SHOP_ORANGE.collidepoint(p):
+            if orangeBoughtFlashFrames > 0:
+                return
+            if not orangeOwned:
+                if alps >= 6:
+                    orangeOwned = True
+                    orangeEquipped = False
+                    alps -= 6
+                    orangeBoughtFlashFrames = BOUGHT_FLASH_MAX
+                return
+            orangeEquipped = not orangeEquipped
+            if orangeEquipped:
+                pearEquipped = False
+            return
+        if SHOP_PEAR.collidepoint(p):
+            if pearBoughtFlashFrames > 0:
+                return
+            if not pearOwned:
+                if alps >= 8:
+                    pearOwned = True
+                    alps -= 8
+                    pearBoughtFlashFrames = BOUGHT_FLASH_MAX
+                return
+            pearEquipped = not pearEquipped
+            if pearEquipped:
+                orangeEquipped = False
+            return
+        if SHOP_TRAIL.collidepoint(p):
+            if trailBoughtFlashFrames > 0:
+                return
+            if not trailOwned:
+                if alps >= 9:
+                    trailOwned = True
+                    alps -= 9
+                    trailBoughtFlashFrames = BOUGHT_FLASH_MAX
+                return
+            trailEquipped = not trailEquipped
+            trailPoints = []
+            return
+
+    if gs == "p2_1v1_shop":
+        if BTN_SHOP_BACK.collidepoint(p):
+            gameState = "menu"
+            return
+        if SHOP_ORANGE.collidepoint(p):
+            if orangeBoughtFlashFrames > 0:
+                return
+            if not orangeOwned:
+                if alps >= 6:
+                    orangeOwned = True
+                    orangeEquipped = False
+                    alps -= 6
+                    orangeBoughtFlashFrames = BOUGHT_FLASH_MAX
+                return
+            orangeEquipped = not orangeEquipped
+            if orangeEquipped:
+                pearEquipped = False
+            return
+        if SHOP_PEAR.collidepoint(p):
+            if pearBoughtFlashFrames > 0:
+                return
+            if not pearOwned:
+                if alps >= 8:
+                    pearOwned = True
+                    alps -= 8
+                    pearBoughtFlashFrames = BOUGHT_FLASH_MAX
+                return
+            pearEquipped = not pearEquipped
+            if pearEquipped:
+                orangeEquipped = False
+            return
+        if SHOP_TRAIL.collidepoint(p):
+            if trailBoughtFlashFrames > 0:
+                return
+            if not trailOwned:
+                if alps >= 9:
+                    trailOwned = True
+                    alps -= 9
+                    trailBoughtFlashFrames = BOUGHT_FLASH_MAX
+                return
+            trailEquipped = not trailEquipped
+            trailPoints = []
+            return
+
+
     if gs == "paused1v1":
         if BTN_MENU_PAUSED.collidepoint(p):
             gameState = "menu"
@@ -461,7 +552,7 @@ def handle_mouse_click(pos):
 # ----------------------------------------------------------------------
 
 def draw_menu():
-    for r in (BTN_LEVEL1, BTN_LEVEL2, BTN_LEVEL3, BTN_SHOP, BTN_SETTINGS_MENU,BTN_1v1):
+    for r in (BTN_LEVEL1, BTN_LEVEL2, BTN_LEVEL3, BTN_SHOP, BTN_SETTINGS_MENU,BTN_1V1):
         pygame.draw.rect(canvas, WHITE, r)
     draw_img(settings_img, -10, 0, 70, 50)
 
@@ -470,7 +561,7 @@ def draw_menu():
     draw_text_centered("Level 2", BTN_LEVEL2, 20, c)
     draw_text_centered("Level 3", BTN_LEVEL3, 20, c)
     draw_text_centered("Shop", BTN_SHOP, 20, c)
-    draw_text_centered("1v1",BTN_1v1,20,c)
+    draw_text_centered("1v1",BTN_1V1,20,c)
     if save:
         pygame.draw.rect(canvas, WHITE, BTN_CONTINUE)
         draw_text_centered("Continue", pygame.Rect(50, 0, 100, 25), 17, (31, 150, 25))
@@ -498,6 +589,7 @@ def _draw_shop_item(item_rect, icon_rect, owned, equipped, flash, cost, hovered)
 
 
 def draw_shop():
+    global p
     p = mouse_canvas()
 
     draw_img(alpsimg, 330, 387, 200, 200)
@@ -521,6 +613,64 @@ def draw_shop():
     _draw_shop_item(SHOP_TRAIL, pygame.Rect(230, 71, 80, 70), trailOwned,
                     trailEquipped, trailBoughtFlashFrames, 9, SHOP_TRAIL.collidepoint(p))
     draw_img(trail_img, 240, 76, 60, 60)
+
+def draw_p1_1v1_shop():
+    global p
+    p = mouse_canvas()
+
+    draw_img(alpsimg, 330, 387, 200, 200)
+    draw_text(":", 455, 463, 20, (48, 217, 205))
+    draw_text(str(alps), 465, 465, 20, (48, 217, 205))
+
+    pygame.draw.rect(canvas, WHITE, pygame.Rect(0, 0, 500, 50))
+    draw_text_centered("PLAYER 1 CHOOSE YOUR ITEMS", pygame.Rect(0, 0, 500, 50), 40, (237, 22, 22))
+
+    pygame.draw.rect(canvas, WHITE, BTN_SHOP_BACK)
+    draw_text_centered("Back To Menu", BTN_SHOP_BACK, 14, (237, 22, 22))
+
+    _draw_shop_item(SHOP_ORANGE, pygame.Rect(10, 70, 80, 70), orangeOwned,
+                    orangeEquipped, orangeBoughtFlashFrames, 6, SHOP_ORANGE.collidepoint(p))
+    draw_img(orange, 20, 70, 60, 60)
+
+    _draw_shop_item(SHOP_PEAR, pygame.Rect(120, 70, 80, 70), pearOwned,
+                    pearEquipped, pearBoughtFlashFrames, 8, SHOP_PEAR.collidepoint(p))
+    draw_img(pear, 121, 64, 80, 80)
+
+    _draw_shop_item(SHOP_TRAIL, pygame.Rect(230, 71, 80, 70), trailOwned,
+                    trailEquipped, trailBoughtFlashFrames, 9, SHOP_TRAIL.collidepoint(p))
+    draw_img(trail_img, 240, 76, 60, 60)
+ 
+    pygame.draw.rect(canvas,WHITE,BTN_P1_1V1_SHOP)
+    draw_text_centered("Next", BTN_P1_1V1_SHOP,25,(230,22,22))
+
+
+
+def draw_p2_1v1_shop():
+    global p
+    p = mouse_canvas()
+
+
+    draw_img(alpsimg, 330, 387, 200, 200)
+    draw_text(":", 455, 463, 20, (48, 217, 205))
+    draw_text(str(alps), 465, 465, 20, (48, 217, 205))
+
+    pygame.draw.rect(canvas, WHITE, pygame.Rect(0, 0, 500, 50))
+    draw_text_centered("PLAYER 1 CHOOSE YOUR ITEMS", pygame.Rect(0, 0, 500, 50), 40, (237, 22, 22))
+
+    pygame.draw.rect(canvas, WHITE, BTN_SHOP_BACK)
+    draw_text_centered("Back To Menu", BTN_SHOP_BACK, 14, (237, 22, 22))
+
+    _draw_shop_item(SHOP_ORANGE, pygame.Rect(10, 70, 80, 70), orangeOwned,
+                    orangeEquipped, orangeBoughtFlashFrames, 6, SHOP_ORANGE.collidepoint(p))
+    draw_img(orange, 20, 70, 60, 60)
+
+    _draw_shop_item(SHOP_PEAR, pygame.Rect(120, 70, 80, 70), pearOwned,
+                    pearEquipped, pearBoughtFlashFrames, 8, SHOP_PEAR.collidepoint(p))
+    draw_img(pear, 121, 64, 80, 80)
+
+    _draw_shop_item(SHOP_TRAIL, pygame.Rect(230, 71, 80, 70), trailOwned,
+                    trailEquipped, trailBoughtFlashFrames, 9, SHOP_TRAIL.collidepoint(p))
+    draw_img(trail_img, 240, 76, 60, 60) 
 
 
 def draw_settings():
@@ -612,7 +762,7 @@ def draw_1v1_game_over():
 
     canvas.fill((0, 0, 0))
     draw_text("GAME OVER", 55, 190, 90, (80, 240, 31))
-    draw_text(winner, 160, 395, 35, (73, 217, 48))
+    draw_text(winner, 161, 395, 35, (73, 217, 48))
     pygame.draw.rect(canvas, (80, 240, 31), BTN_GAMEOVER_MENU, border_radius=15)
     draw_text_centered("MENU", BTN_GAMEOVER_MENU, 40, (35, 161, 156))
 
@@ -880,10 +1030,15 @@ while running:
         update_and_draw_play()
     elif gameState == "1v1":
         draw_1v1()
+
+    elif gameState == "p1_1v1_shop":
+        draw_p1_1v1_shop()
     elif gameState == "tiebreaker":
         draw_tiebreaker()
     elif gameState == "gameOver1v1":
         draw_1v1_game_over()
+    elif gameState == "p2_1v1_shop":
+        draw_p2_1v1_shop()
 
     if showCords:
         mx, my = mouse_canvas()
