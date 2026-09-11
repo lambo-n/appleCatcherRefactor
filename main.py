@@ -228,6 +228,14 @@ def draw_trail():
     for (x, y) in trailPoints:
         canvas.blit(trail_stamp, trail_stamp.get_rect(center=(x, y)))
 
+def p1_draw_trail():
+    for (x, y) in trailPoints:
+        canvas.blit(trail_stamp, trail_stamp.get_rect(center=(x, y)))
+
+def p2_draw_trail():
+    for (x, y) in trailPoints:
+        canvas.blit(trail_stamp, trail_stamp.get_rect(center=(x, y)))
+
 
 def show_score():
     draw_text("Score: " + str(score), 41, 25, 25, WHITE)
@@ -729,7 +737,11 @@ def draw_basket_and_entities():
     show_lives()
     
 def draw_basket_and_entities_1v1():
-    
+
+    if p1_trailEquipped:
+        p1_draw_trail()
+    if p2_trailEquipped:
+        p2_draw_trail()
 
     draw_img(current_basket_img(p1_pearOwned, p1_orangeOwned), player1_rect.x, player1_rect.y, 100, 50)
     draw_img(current_basket_img(p2_pearOwned,p2_orangeOwned), player2_rect.x, player2_rect.y, 100, 50)
@@ -741,6 +753,7 @@ def draw_basket_and_entities_1v1():
     draw_text("Player 2 score: " + str(p2_score), 350, 20, 20, (255, 0, 0))
     
     apples.draw(canvas) 
+
 
     
 
