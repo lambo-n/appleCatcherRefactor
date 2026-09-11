@@ -308,7 +308,7 @@ def handle_mouse_click(pos):
     global orangeOwned, orangeEquipped, alps, orangeBoughtFlashFrames
     global pearOwned, pearEquipped, pearBoughtFlashFrames
     global trailOwned, trailEquipped, trailPoints, trailBoughtFlashFrames, score, lives
-    global speedBoostTimer, speed, player1_rect, player2_rect, p1_score, p2_score, timeLeft, tiebreaker_apples,p1_pearOwned,p1_pearEquipped,p2_pearOwned,p2_pearEquipped,p1_orangeOwned,p1_orangeEquipped,p2_orangeOwned,p2_orangeEquipped,p1_trailOwned,p1_trailEquipped,p2_trailOwned
+    global speedBoostTimer, speed, player1_rect, player2_rect, p1_score, p2_score, timeLeft, tiebreaker_apples,p1_pearOwned,p1_pearEquipped,p2_pearOwned,p2_pearEquipped,p1_orangeOwned,p1_orangeEquipped,p2_orangeOwned,p2_orangeEquipped,p1_trailOwned,p1_trailEquipped,p2_trailOwned,p2_trailEquipped
     p = to_canvas(pos)
     gs = gameState
 
@@ -551,7 +551,7 @@ def handle_mouse_click(pos):
                 return
             if not p2_trailOwned:
                 if alps >= 9:
-                    trailOwned = True
+                    p2_trailOwned = True
                     alps -= 9
                     trailBoughtFlashFrames = BOUGHT_FLASH_MAX
                 return
