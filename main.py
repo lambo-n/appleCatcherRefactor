@@ -231,11 +231,11 @@ def draw_trail():
         canvas.blit(trail_stamp, trail_stamp.get_rect(center=(x, y)))
 
 def p1_draw_trail():
-    for (x, y) in trailPoints:
+    for (x, y) in p1_trailPoints:
         canvas.blit(trail_stamp, trail_stamp.get_rect(center=(x, y)))
 
 def p2_draw_trail():
-    for (x, y) in trailPoints:
+    for (x, y) in p2_trailPoints:
         canvas.blit(trail_stamp, trail_stamp.get_rect(center=(x, y)))
 
 
@@ -840,7 +840,7 @@ def update_and_draw_play():
     draw_text(":", 345, 27, 20, (48, 217, 205))
     draw_text(str(alps), 357, 27, 20, (48, 217, 205))
 
-    draw_img(current_basket_img(), basket_rect.x, basket_rect.y, 100, 50)
+    draw_img(current_basket_img(pearEquipped,orangeEquipped), basket_rect.x, basket_rect.y, 100, 50)
 
     # Apples: a loose catch box around the basket; missed if they fall past 425.
     catch_box = pygame.Rect(basket_rect.x - 49, basket_rect.y - 49, 149, 49)
@@ -1012,7 +1012,7 @@ while running:
             basket_rect.x += speed
         if (keys[pygame.K_DOWN] or keys[pygame.K_s]) and basket_rect.y <= 450:
             basket_rect.y += speed
-        if (keys[pygame.K_UP] or keys[pygame.K_w]) and basket_rect.y >= 0:
+        if (keys[pygame.K_UP] or keys[pygame.K_w]) and basket_rect.y >= 62:
             basket_rect.y -= speed
 
 
@@ -1027,7 +1027,7 @@ while running:
             player1_rect.x += speed
         if (keys[pygame.K_s]) and player1_rect.y <= 450:
             player1_rect.y += speed
-        if (keys[pygame.K_w]) and player1_rect.y >= 0:
+        if (keys[pygame.K_w]) and player1_rect.y >= 40:
             player1_rect.y -= speed
         
         if (keys[pygame.K_LEFT]) and player2_rect.x >= 0:
@@ -1036,7 +1036,7 @@ while running:
             player2_rect.x += speed
         if (keys[pygame.K_DOWN]) and player2_rect.y <= 450:
             player2_rect.y += speed
-        if (keys[pygame.K_UP]) and player2_rect.y >= 0:
+        if (keys[pygame.K_UP]) and player2_rect.y >= 40:
             player2_rect.y -= speed
             
     elif gameState == "tiebreaker" and tiebreaker_text_counter >= 120:
@@ -1047,7 +1047,7 @@ while running:
             player1_rect.x += speed
         if (keys[pygame.K_s]) and player1_rect.y <= 450:
             player1_rect.y += speed
-        if (keys[pygame.K_w]) and player1_rect.y >= 0:
+        if (keys[pygame.K_w]) and player1_rect.y >= 40:
             player1_rect.y -= speed
         
         if (keys[pygame.K_LEFT]) and player2_rect.x >= 0:
@@ -1056,7 +1056,7 @@ while running:
             player2_rect.x += speed
         if (keys[pygame.K_DOWN]) and player2_rect.y <= 450:
             player2_rect.y += speed
-        if (keys[pygame.K_UP]) and player2_rect.y >= 0:
+        if (keys[pygame.K_UP]) and player2_rect.y >= 32:
             player2_rect.y -= speed   
     
 
