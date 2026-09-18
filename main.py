@@ -146,6 +146,8 @@ gameState = "menu"
 previousState = "menu"
 alps = 100
 speed = 9
+p1_speed = 9
+p2_speed = 9
 baseSpeed = 9
 speedBoostTimer = 0
 p1_speedBoostTimer = 0
@@ -885,8 +887,9 @@ def update_and_draw_play():
 
 
 def draw_1v1():
-    global p1_score, p2_score, timeLeft, difficulty, speed, boosterSpawnCooldown
-    speed = 9
+    global p1_score, p2_score, timeLeft, difficulty, p1_speed, p2_speed, boosterSpawnCooldown
+    p1_speed = 9
+    p2_speed = 9
     canvas.fill((21, 39, 237))
 
     if boosterSpawnCooldown > 0:
@@ -1039,42 +1042,42 @@ while running:
     elif gameState =="1v1":
         keys = pygame.key.get_pressed()
         if (keys[pygame.K_a]) and player1_rect.x >= 0:
-            player1_rect.x -= speed
+            player1_rect.x -= p1_speed
         if (keys[pygame.K_d]) and player1_rect.x <= 400:
-            player1_rect.x += speed
+            player1_rect.x += p1_speed
         if (keys[pygame.K_s]) and player1_rect.y <= 450:
-            player1_rect.y += speed
+            player1_rect.y += p1_speed
         if (keys[pygame.K_w]) and player1_rect.y >= 40:
-            player1_rect.y -= speed
-        
+            player1_rect.y -= p1_speed
+
         if (keys[pygame.K_LEFT]) and player2_rect.x >= 0:
-            player2_rect.x -= speed
+            player2_rect.x -= p2_speed
         if (keys[pygame.K_RIGHT]) and player2_rect.x <= 400:
-            player2_rect.x += speed
+            player2_rect.x += p2_speed
         if (keys[pygame.K_DOWN]) and player2_rect.y <= 450:
-            player2_rect.y += speed
+            player2_rect.y += p2_speed
         if (keys[pygame.K_UP]) and player2_rect.y >= 40:
-            player2_rect.y -= speed
-            
+            player2_rect.y -= p2_speed
+
     elif gameState == "tiebreaker" and tiebreaker_text_counter >= 120:
         keys = pygame.key.get_pressed()
         if (keys[pygame.K_a]) and player1_rect.x >= 0:
-            player1_rect.x -= speed
+            player1_rect.x -= p1_speed
         if (keys[pygame.K_d]) and player1_rect.x <= 400:
-            player1_rect.x += speed
+            player1_rect.x += p1_speed
         if (keys[pygame.K_s]) and player1_rect.y <= 450:
-            player1_rect.y += speed
+            player1_rect.y += p1_speed
         if (keys[pygame.K_w]) and player1_rect.y >= 40:
-            player1_rect.y -= speed
-        
+            player1_rect.y -= p1_speed
+
         if (keys[pygame.K_LEFT]) and player2_rect.x >= 0:
-            player2_rect.x -= speed
+            player2_rect.x -= p2_speed
         if (keys[pygame.K_RIGHT]) and player2_rect.x <= 400:
-            player2_rect.x += speed
+            player2_rect.x += p2_speed
         if (keys[pygame.K_DOWN]) and player2_rect.y <= 450:
-            player2_rect.y += speed
+            player2_rect.y += p2_speed
         if (keys[pygame.K_UP]) and player2_rect.y >= 32:
-            player2_rect.y -= speed   
+            player2_rect.y -= p2_speed
     
 
     if gameState not in ("settings", "gameOver"):
