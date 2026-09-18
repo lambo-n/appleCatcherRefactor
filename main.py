@@ -152,6 +152,8 @@ boostAmount = 5
 boostLength = 150
 boosterSpawnCooldown = 0
 trailPoints = []
+p1_trailPoints = []
+p2_trailPoints = []
 trailMaxLength = 30
 save = False
 saveLevel = 1
@@ -886,7 +888,18 @@ def draw_1v1():
     canvas.fill((21, 39, 237))
     
     display_time_left()
-    
+
+    if p1_trailEquipped:
+            p1_trailPoints.append((player1_rect.x + 50, player1_rect.y + 30))
+            if len(p1_trailPoints) > trailMaxLength:
+                p1_trailPoints.pop(0)
+            draw_trail()
+
+    if p2_trailEquipped:
+            p2_trailPoints.append((player2_rect.x + 50, player2_rect.y + 30))
+            if len(p2_trailPoints) > trailMaxLength:
+                p2_trailPoints.pop(0)
+            draw_trail()
 
     
     if random.randint(1, 57) == 8:
