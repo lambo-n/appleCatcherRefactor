@@ -199,7 +199,7 @@ p1_orangeEquipped = False
 
 # Faint red trail stamp, built once.
 trail_stamp = pygame.Surface((10, 10), pygame.SRCALPHA)
-trail_stamp.fill((237, 9, 9, 70))
+pygame.draw.circle(trail_stamp, (237, 9, 9, 80), (5, 5), 5)
 
 
 # ----------------------------------------------------------------------
@@ -884,7 +884,7 @@ def update_and_draw_play():
 
 def draw_1v1():
     global p1_score, p2_score, timeLeft, difficulty, speed
-    speed = 11
+    speed = 9
     canvas.fill((21, 39, 237))
     
     display_time_left()
