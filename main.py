@@ -55,7 +55,7 @@ _scaled_cache = {}
 def get_font(size):
     font = _font_cache.get(size)
     if font is None:
-        font = pygame.font.Font(None, size)
+        font = pygame.font.SysFont("arial", size)
         _font_cache[size] = font
     return font
 
@@ -885,7 +885,7 @@ def update_and_draw_play():
 
 
 def draw_1v1():
-    global p1_score, p2_score, timeLeft, difficulty, speed
+    global p1_score, p2_score, timeLeft, difficulty, speed, boosterSpawnCooldown
     speed = 9
     canvas.fill((21, 39, 237))
 
