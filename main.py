@@ -148,6 +148,8 @@ alps = 100
 speed = 9
 baseSpeed = 9
 speedBoostTimer = 0
+p1_speedBoostTimer = 0
+p2_speedBoostTimer = 0
 boostAmount = 5
 boostLength = 150
 boosterSpawnCooldown = 0
@@ -886,7 +888,22 @@ def draw_1v1():
     global p1_score, p2_score, timeLeft, difficulty, speed
     speed = 9
     canvas.fill((21, 39, 237))
+
+    if boosterSpawnCooldown > 0:
+            boosterSpawnCooldown -= 1
+    elif random.randint(1, 220) == 12:
+            boosters.add(Booster())
+            boosterSpawnCooldown = 120
     
+    # if p1_speedBoostTimer > 0:
+    #         p1_speedBoostTimer -= 1
+    #         speed = baseSpeed + boostAmount
+    # else:
+    #         speed = baseSpeed   
+
+
+
+
     display_time_left()
 
     if p1_trailEquipped:
