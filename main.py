@@ -55,7 +55,7 @@ _scaled_cache = {}
 def get_font(size):
     font = _font_cache.get(size)
     if font is None:
-        font = pygame.font.SysFont("arial", size)
+        font = pygame.font.Font(None, size)
         _font_cache[size] = font
     return font
 

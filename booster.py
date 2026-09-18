@@ -22,7 +22,7 @@ class Booster(pygame.sprite.Sprite):
     @classmethod
     def get_font(cls):
         if cls._font is None:
-            cls._font = pygame.font.SysFont("arial", 18)
+            cls._font = pygame.font.Font(None, 25)
         return cls._font
 
     def update(self):
