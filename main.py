@@ -144,15 +144,18 @@ lives = 3
 difficulty = 3
 gameState = "menu"
 previousState = "menu"
-alps = 100
+alps = 0
 speed = 9
 p1_speed = 9
 p2_speed = 9
 baseSpeed = 9
+baseSpeed_1v1 = 9
+baseSpeed_1v1 = 9
 speedBoostTimer = 0
 p1_speedBoostTimer = 0
 p2_speedBoostTimer = 0
-boostAmount = 5
+boostAmount = 4
+boostAmount_1v1 = 4 
 boostLength = 150
 boosterSpawnCooldown = 0
 p1_boosterSpawnCooldown = 0
@@ -919,15 +922,15 @@ def draw_1v1():
     
     if p1_speedBoostTimer > 0:
             p1_speedBoostTimer -= 1
-            p1_speed = baseSpeed + boostAmount
+            p1_speed = baseSpeed_1v1 + boostAmount_1v1
     else:
-            p1_speed = baseSpeed   
+            p1_speed = baseSpeed_1v1   
 
     if p2_speedBoostTimer > 0:
             p2_speedBoostTimer -= 1
-            p2_speed = baseSpeed + boostAmount
+            p2_speed = baseSpeed_1v1 + boostAmount_1v1
     else:
-            p2_speed = baseSpeed   
+            p2_speed = baseSpeed_1v1   
 
 
 
