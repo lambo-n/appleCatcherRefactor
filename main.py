@@ -752,8 +752,8 @@ def draw_basket_and_entities_1v1():
     draw_img(current_basket_img(p1_pearOwned, p1_orangeOwned), player1_rect.x, player1_rect.y, 100, 50)
     draw_img(current_basket_img(p2_pearOwned,p2_orangeOwned), player2_rect.x, player2_rect.y, 100, 50)
     
-    draw_text("Basket 1", player1_rect.x+22, player1_rect.y+29.5, 20, "yellow")
-    draw_text("Basket 2", player2_rect.x+22, player2_rect.y+29.5, 20, "yellow")
+    draw_text("Player 1", player1_rect.x+22, player1_rect.y+29.5, 20, "yellow")
+    draw_text("Player 2", player2_rect.x+22, player2_rect.y+29.5, 20, "yellow")
 
     draw_text("Player 1 score: " + str(p1_score), 20, 20, 20, (255, 0, 0))
     draw_text("Player 2 score: " + str(p2_score), 350, 20, 20, (255, 0, 0))
@@ -806,13 +806,13 @@ def draw_game_over():
 
 def draw_1v1_game_over():
     if p1_score > p2_score:
-        winner = "Basket 1 wins!"
+        winner = "Player 1 wins!"
     else:
-        winner = "Basket 2 wins!"
+        winner = "Player 2 wins!"
 
     canvas.fill((0, 0, 0))
     draw_text("GAME OVER", 55, 190, 90, (80, 240, 31))
-    draw_text(winner, 161, 395, 35, (73, 217, 48))
+    draw_text(winner, 160, 395, 35, (73, 217, 48))
     pygame.draw.rect(canvas, (80, 240, 31), BTN_GAMEOVER_MENU, border_radius=15)
     draw_text_centered("MENU", BTN_GAMEOVER_MENU, 40, (35, 161, 156))
 
