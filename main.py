@@ -223,11 +223,20 @@ def current_basket_img(hasPear, hasOrange):
     return basket
 
 
-def to_canvas(pos):
-    """Map a window-space point into canvas space."""
-    mx, my = pos
+def get_letterbox_rect():
+    """Largest centered Rect that fits the canvas aspect ratio in the window."""
     w, h = screen.get_size()
-    return mx * CANVAS_SIZE[0] / w, my * CANVAS_SIZE[1] / h
+    side = min(w, h)
+    return pygame.Rect((w - side) // 2, (h - side) // 2, side, side)
+
+
+def to_canvas(pos):
+    """Map a window-space point into canvas space, accounting for letterbox bars."""
+    mx, my = pos
+    lb = get_letterbox_rect()
+    cx = (mx - lb.x) * CANVAS_SIZE[0] / lb.width
+    cy = (my - lb.y) * CANVAS_SIZE[1] / lb.height
+    return cx, cy
 
 
 def mouse_canvas():
@@ -1151,9 +1160,10 @@ while running:
         draw_text(str(int(mx)) + ", " + str(int(my)), 20, 497, 15, (255, 0, 0),
                   anchor="bottomleft")
 
-    # Scale the fixed canvas up to the live window and present.
-    # smoothscale anti-aliases the upscale so text/edges aren't pixelated.
-    pygame.transform.smoothscale(canvas, screen.get_size(), screen)
+    # Letterbox: fill black bars, then scale canvas into the centered game rect.
+    screen.fill((0, 0, 0))
+    lb = get_letterbox_rect()
+    pygame.transform.smoothscale(canvas, (lb.width, lb.height), screen.subsurface(lb))
     pygame.display.flip()
     clock.tick(60)
 
