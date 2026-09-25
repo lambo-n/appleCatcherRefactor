@@ -155,6 +155,8 @@ p2_speedBoostTimer = 0
 boostAmount = 5
 boostLength = 150
 boosterSpawnCooldown = 0
+p1_boosterSpawnCooldown = 0
+p2_boosterSpawnCooldown = 0
 trailPoints = []
 p1_trailPoints = []
 p2_trailPoints = []
@@ -887,7 +889,8 @@ def update_and_draw_play():
 
 
 def draw_1v1():
-    global p1_score, p2_score, timeLeft, difficulty, p1_speed, p2_speed, boosterSpawnCooldown
+    global p1_score, p2_score, timeLeft, difficulty, p1_speed, p2_speed, boosterSpawnCooldown ,boosters, p1_speedBoostTimer, p2_speedBoostTimer, boostLength, boostAmount
+    
     p1_speed = 9
     p2_speed = 9
     canvas.fill((21, 39, 237))
@@ -896,13 +899,36 @@ def draw_1v1():
             boosterSpawnCooldown -= 1
     elif random.randint(1, 220) == 12:
             boosters.add(Booster())
-            boosterSpawnCooldown = 120
+            boosterSpawnCooldown = 300
+
+    p1_boost_box = pygame.Rect(player1_rect.x - 20, player1_rect.y - 35, 120, 55)
+    p2_boost_box = pygame.Rect(player2_rect.x - 20, player2_rect.y - 35, 120, 55)
+
+    boosters.update()
+    for booster in list(boosters):
+        if booster.rect.centery > 520:
+            booster.kill()
+        elif p1_boost_box.collidepoint(booster.rect.center): 
+            booster.kill()
+            p1_speedBoostTimer = boostLength
+        elif p2_boost_box.collidepoint(booster.rect.center):
+            booster.kill()
+            p2_speedBoostTimer = boostLength   
+
+    boosters.draw(canvas)
     
-    # if p1_speedBoostTimer > 0:
-    #         p1_speedBoostTimer -= 1
-    #         speed = baseSpeed + boostAmount
-    # else:
-    #         speed = baseSpeed   
+    if p1_speedBoostTimer > 0:
+            p1_speedBoostTimer -= 1
+            p1_speed = baseSpeed + boostAmount
+    else:
+            p1_speed = baseSpeed   
+
+    if p2_speedBoostTimer > 0:
+            p2_speedBoostTimer -= 1
+            p2_speed = baseSpeed + boostAmount
+    else:
+            p2_speed = baseSpeed   
+
 
 
 
