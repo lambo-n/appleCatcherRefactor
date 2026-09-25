@@ -166,7 +166,7 @@ p2_trailPoints = []
 trailMaxLength = 30
 save = False
 saveLevel = 1
-showCords = True
+showCords = False
 timerEvent = pygame.USEREVENT + 1
 pygame.time.set_timer(timerEvent, 900)
 timeLeft = 90
@@ -223,20 +223,11 @@ def current_basket_img(hasPear, hasOrange):
     return basket
 
 
-def get_letterbox_rect():
-    """Largest centered Rect that fits the canvas aspect ratio in the window."""
-    w, h = screen.get_size()
-    side = min(w, h)
-    return pygame.Rect((w - side) // 2, (h - side) // 2, side, side)
-
-
 def to_canvas(pos):
-    """Map a window-space point into canvas space, accounting for letterbox bars."""
+    """Map a window-space point into canvas space."""
     mx, my = pos
-    lb = get_letterbox_rect()
-    cx = (mx - lb.x) * CANVAS_SIZE[0] / lb.width
-    cy = (my - lb.y) * CANVAS_SIZE[1] / lb.height
-    return cx, cy
+    w, h = screen.get_size()
+    return mx * CANVAS_SIZE[0] / w, my * CANVAS_SIZE[1] / h
 
 
 def mouse_canvas():
@@ -766,8 +757,8 @@ def draw_basket_and_entities_1v1():
     draw_img(current_basket_img(p1_pearOwned, p1_orangeOwned), player1_rect.x, player1_rect.y, 100, 50)
     draw_img(current_basket_img(p2_pearOwned,p2_orangeOwned), player2_rect.x, player2_rect.y, 100, 50)
     
-    draw_text("Player 1", player1_rect.x+22, player1_rect.y+29.5, 20, "yellow")
-    draw_text("Player 2", player2_rect.x+22, player2_rect.y+29.5, 20, "yellow")
+    draw_text("Player 1", player1_rect.x+22, player1_rect.y+29.5, 20, pygame.Color("yellow"))
+    draw_text("Player 2", player2_rect.x+22, player2_rect.y+29.5, 20, pygame.Color("yellow"))
 
     draw_text("Player 1 score: " + str(p1_score), 20, 20, 20, (255, 0, 0))
     draw_text("Player 2 score: " + str(p2_score), 350, 20, 20, (255, 0, 0))
@@ -1160,10 +1151,9 @@ while running:
         draw_text(str(int(mx)) + ", " + str(int(my)), 20, 497, 15, (255, 0, 0),
                   anchor="bottomleft")
 
-    # Letterbox: fill black bars, then scale canvas into the centered game rect.
-    screen.fill((0, 0, 0))
-    lb = get_letterbox_rect()
-    pygame.transform.smoothscale(canvas, (lb.width, lb.height), screen.subsurface(lb))
+    # Scale the fixed canvas up to the live window and present.
+    # smoothscale anti-aliases the upscale so text/edges aren't pixelated.
+    pygame.transform.smoothscale(canvas, screen.get_size(), screen)
     pygame.display.flip()
     clock.tick(60)
 
