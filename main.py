@@ -902,8 +902,8 @@ def draw_1v1():
     canvas.fill((21, 39, 237))
     text_counter_1v1 += 1
     if text_counter_1v1 < 120:
-            draw_text("GO!", 150, 200, 40, (255, 0, 0))
-            draw_text("Catch as many apples as you can", 143 , 250, 40, (255, 0, 0))
+            draw_text("GO!", 217, 200, 40, (255, 0, 0))
+            draw_text("Catch those apples!", 114 , 250, 40, (255, 0, 0))
     else:
     
         p1_speed = 9
@@ -964,7 +964,7 @@ def draw_1v1():
             
         if random.randint(1, 57) == 8:
             apples.add(Apple(4))
-            apples.update()
+        apples.update()
             
         player1_hitbox = pygame.Rect(player1_rect.x - 49, player1_rect.y - 49, 149, 49)
         player2_hitbox = pygame.Rect(player2_rect.x - 49, player2_rect.y - 49, 149, 49)
