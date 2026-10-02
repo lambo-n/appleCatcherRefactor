@@ -172,6 +172,7 @@ pygame.time.set_timer(timerEvent, 900)
 timeLeft = 90
 tiebreaker_apples = 11
 tiebreaker_text_counter = 0
+text_counter_1v1 = 0
 
 bgColors = [
     (21, 39, 237), (219, 98, 22), (56, 217, 75), (245, 232, 93),
@@ -757,11 +758,11 @@ def draw_basket_and_entities_1v1():
     draw_img(current_basket_img(p1_pearOwned, p1_orangeOwned), player1_rect.x, player1_rect.y, 100, 50)
     draw_img(current_basket_img(p2_pearOwned,p2_orangeOwned), player2_rect.x, player2_rect.y, 100, 50)
     
-    draw_text("Player 1", player1_rect.x+22, player1_rect.y+29.5, 20, pygame.Color("yellow"))
-    draw_text("Player 2", player2_rect.x+22, player2_rect.y+29.5, 20, pygame.Color("yellow"))
+    draw_text("Player 1", player1_rect.x+22, player1_rect.y+29.5, 20, (237, 22, 22))
+    draw_text("Player 2", player2_rect.x+22, player2_rect.y+29.5, 20, (255, 255, 0))
 
-    draw_text("Player 1 score: " + str(p1_score), 20, 20, 20, (255, 0, 0))
-    draw_text("Player 2 score: " + str(p2_score), 350, 20, 20, (255, 0, 0))
+    draw_text("Player 1 score: " + str(p1_score), 20, 20, 20, (237, 22, 22))
+    draw_text("Player 2 score: " + str(p2_score), 350, 20, 20, (255, 255, 0))
     
     apples.draw(canvas) 
 
@@ -810,14 +811,18 @@ def draw_game_over():
     draw_text_centered("MENU", BTN_GAMEOVER_MENU, 40, (35, 161, 156))
 
 def draw_1v1_game_over():
+    canvas.fill((0, 0, 0))
+
     if p1_score > p2_score:
         winner = "Player 1 wins!"
+        draw_text(winner, 160, 395, 35, (237, 22, 22))
     else:
         winner = "Player 2 wins!"
-
-    canvas.fill((0, 0, 0))
+        draw_text (winner, 160, 395, 35, (255, 255, 0))
+    
+    
     draw_text("GAME OVER", 55, 190, 90, (80, 240, 31))
-    draw_text(winner, 160, 395, 35, (73, 217, 48))
+    
     pygame.draw.rect(canvas, (80, 240, 31), BTN_GAMEOVER_MENU, border_radius=15)
     draw_text_centered("MENU", BTN_GAMEOVER_MENU, 40, (35, 161, 156))
 
@@ -892,74 +897,79 @@ def update_and_draw_play():
 
 
 def draw_1v1():
-    global p1_score, p2_score, timeLeft, difficulty, p1_speed, p2_speed, boosterSpawnCooldown ,boosters, p1_speedBoostTimer, p2_speedBoostTimer, boostLength, boostAmount
-    
-    p1_speed = 9
-    p2_speed = 9
-    canvas.fill((21, 39, 237))
+    global p1_score, p2_score, timeLeft, difficulty, p1_speed, p2_speed, boosterSpawnCooldown ,boosters, p1_speedBoostTimer, p2_speedBoostTimer, boostLength, boostAmount,text_counter_1v1
 
-    if boosterSpawnCooldown > 0:
+    canvas.fill((21, 39, 237))
+    text_counter_1v1 += 1
+    if text_counter_1v1 < 120:
+            draw_text("GO!", 150, 200, 40, (255, 0, 0))
+            draw_text("Catch as many apples as you can", 143 , 250, 40, (255, 0, 0))
+    else:
+    
+        p1_speed = 9
+        p2_speed = 9
+
+        if boosterSpawnCooldown > 0:
             boosterSpawnCooldown -= 1
-    elif random.randint(1, 220) == 12:
+        elif random.randint(1, 220) == 12:
             boosters.add(Booster())
             boosterSpawnCooldown = 300
 
-    p1_boost_box = pygame.Rect(player1_rect.x - 20, player1_rect.y - 35, 120, 55)
-    p2_boost_box = pygame.Rect(player2_rect.x - 20, player2_rect.y - 35, 120, 55)
+        p1_boost_box = pygame.Rect(player1_rect.x - 20, player1_rect.y - 35, 120, 55)
+        p2_boost_box = pygame.Rect(player2_rect.x - 20, player2_rect.y - 35, 120, 55)
 
-    boosters.update()
-    for booster in list(boosters):
-        if booster.rect.centery > 520:
-            booster.kill()
-        elif p1_boost_box.collidepoint(booster.rect.center): 
-            booster.kill()
-            p1_speedBoostTimer = boostLength
-        elif p2_boost_box.collidepoint(booster.rect.center):
-            booster.kill()
-            p2_speedBoostTimer = boostLength   
+        boosters.update()
+        for booster in list(boosters):
+            if booster.rect.centery > 520:
+                booster.kill()
+            elif p1_boost_box.collidepoint(booster.rect.center): 
+                booster.kill()
+                p1_speedBoostTimer = boostLength
+            elif p2_boost_box.collidepoint(booster.rect.center):
+                booster.kill()
+                p2_speedBoostTimer = boostLength   
 
-    boosters.draw(canvas)
-    
-    if p1_speedBoostTimer > 0:
+        boosters.draw(canvas)
+        
+        if p1_speedBoostTimer > 0:
             p1_speedBoostTimer -= 1
             p1_speed = baseSpeed_1v1 + boostAmount_1v1
-    else:
+        else:
             p1_speed = baseSpeed_1v1   
 
-    if p2_speedBoostTimer > 0:
+        if p2_speedBoostTimer > 0:
             p2_speedBoostTimer -= 1
             p2_speed = baseSpeed_1v1 + boostAmount_1v1
-    else:
+        else:
             p2_speed = baseSpeed_1v1   
 
 
 
 
 
-    display_time_left()
+        display_time_left()
 
-    if p1_trailEquipped:
+        if p1_trailEquipped:
             p1_trailPoints.append((player1_rect.x + 50, player1_rect.y + 30))
             if len(p1_trailPoints) > trailMaxLength:
                 p1_trailPoints.pop(0)
             draw_trail()
 
-    if p2_trailEquipped:
+        if p2_trailEquipped:
             p2_trailPoints.append((player2_rect.x + 50, player2_rect.y + 30))
             if len(p2_trailPoints) > trailMaxLength:
                 p2_trailPoints.pop(0)
             draw_trail()
 
-    
-    if random.randint(1, 57) == 8:
-        apples.add(Apple(4))
-        
-    apples.update()
-    
-    player1_hitbox = pygame.Rect(player1_rect.x - 49, player1_rect.y - 49, 149, 49)
-    player2_hitbox = pygame.Rect(player2_rect.x - 49, player2_rect.y - 49, 149, 49)
-    
-    for apple in list(apples):
+            
+        if random.randint(1, 57) == 8:
+            apples.add(Apple(4))
+            apples.update()
+            
+        player1_hitbox = pygame.Rect(player1_rect.x - 49, player1_rect.y - 49, 149, 49)
+        player2_hitbox = pygame.Rect(player2_rect.x - 49, player2_rect.y - 49, 149, 49)
+            
+        for apple in list(apples):
             if apple.rect.top >= 425:
                 apple.kill()
             elif player1_hitbox.collidepoint(apple.rect.topleft):
@@ -969,7 +979,7 @@ def draw_1v1():
                 apple.kill()
                 p2_score += 1
 
-    draw_basket_and_entities_1v1()
+        draw_basket_and_entities_1v1()
     
     
 def draw_tiebreaker():
@@ -1052,6 +1062,7 @@ while running:
                     player2_rect = pygame.Rect(player2_pos.x, player2_pos.y, 100, 50)
 
 
+        
 
     if gameState == "play":
         keys = pygame.key.get_pressed()
@@ -1107,6 +1118,7 @@ while running:
             player2_rect.y += p2_speed
         if (keys[pygame.K_UP]) and player2_rect.y >= 32:
             player2_rect.y -= p2_speed
+
     
 
     if gameState not in ("settings", "gameOver"):
@@ -1136,7 +1148,7 @@ while running:
         update_and_draw_play()
     elif gameState == "1v1":
         draw_1v1()
-
+    
     elif gameState == "p1_1v1_shop":
         draw_p1_1v1_shop()
     elif gameState == "tiebreaker":
