@@ -901,16 +901,17 @@ def draw_1v1():
 
     canvas.fill((21, 39, 237))
     text_counter_1v1 += 1
-    if text_counter_1v1 < 180:
-            countdownNum = 2 - (text_counter_1v1 / 60)
-            countdownNum = round(countdownNum, 2)
-            if text_counter_1v1 >= 120:
-                draw_text("GO!", 217, 200, 40, (255, 0, 0))
+    if text_counter_1v1 < 160:
+            countdownNum = 3 - (text_counter_1v1 / 60)
+            countdownNum = round(countdownNum)
+            if text_counter_1v1 >= 10:
+                draw_text("GO", 217, 200, 40, (255, 0, 0))
+                draw_text("Catch those apples!", 114 , 250, 40, (255, 0, 0))
 
             else:
-                draw_text(countdownNum, 217, 200, 40, (255, 0, 0))
+                draw_text(countdownNum, 242, 215, 40, (255, 0, 0))
             
-            draw_text("Catch those apples!", 114 , 250, 40, (255, 0, 0))
+                
     else:
     
         p1_speed = 9
