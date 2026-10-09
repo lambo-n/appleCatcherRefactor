@@ -4,6 +4,8 @@
 # pygame calls (pygame.Rect, pygame.draw, pygame.font, Sprite/Group). The
 # canvas is then scaled once to the live window, so the game scales cleanly
 # without any per-primitive scaling math.
+import math
+
 import pygame 
 import random
 import os
@@ -901,10 +903,10 @@ def draw_1v1():
 
     canvas.fill((21, 39, 237))
     text_counter_1v1 += 1
-    if text_counter_1v1 < 160:
-            countdownNum = 3 - (text_counter_1v1 / 60)
-            countdownNum = round(countdownNum)
-            if text_counter_1v1 >= 10:
+    if text_counter_1v1 < 240:
+            countdownNum = 4 - (text_counter_1v1 / 60)
+            countdownNum = math.floor(countdownNum)
+            if text_counter_1v1 >= 180:
                 draw_text("GO", 217, 200, 40, (255, 0, 0))
                 draw_text("Catch those apples!", 114 , 250, 40, (255, 0, 0))
 
