@@ -331,6 +331,7 @@ def handle_mouse_click(pos):
     global pearOwned, pearEquipped, pearBoughtFlashFrames
     global trailOwned, trailEquipped, trailPoints, trailBoughtFlashFrames, score, lives
     global speedBoostTimer, speed, player1_rect, player2_rect, p1_score, p2_score, timeLeft, tiebreaker_apples,p1_pearOwned,p1_pearEquipped,p2_pearOwned,p2_pearEquipped,p1_orangeOwned,p1_orangeEquipped,p2_orangeOwned,p2_orangeEquipped,p1_trailOwned,p1_trailEquipped,p2_trailOwned,p2_trailEquipped
+    global text_counter_1v1,tiebreaker_text_counter
     p = to_canvas(pos)
     gs = gameState
 
@@ -538,6 +539,7 @@ def handle_mouse_click(pos):
 
         if BTN_P2_1V1_SHOP.collidepoint(p):
             gameState = "1v1"
+            text_counter_1v1=0
             return
         
         
@@ -817,10 +819,10 @@ def draw_1v1_game_over():
 
     if p1_score > p2_score:
         winner = "Player 1 wins!"
-        draw_text(winner, 160, 395, 35, (237, 22, 22))
+        draw_text(winner, 163, 395, 35, (237, 22, 22))
     else:
         winner = "Player 2 wins!"
-        draw_text (winner, 160, 395, 35, (255, 255, 0))
+        draw_text (winner, 163, 395, 35, (255, 255, 0))
     
     
     draw_text("GAME OVER", 55, 190, 90, (80, 240, 31))
@@ -900,20 +902,21 @@ def update_and_draw_play():
 
 def draw_1v1():
     global p1_score, p2_score, timeLeft, difficulty, p1_speed, p2_speed, boosterSpawnCooldown ,boosters, p1_speedBoostTimer, p2_speedBoostTimer, boostLength, boostAmount,text_counter_1v1
-
+    global player1_rect,player2_rect
     canvas.fill((21, 39, 237))
     text_counter_1v1 += 1
     if text_counter_1v1 < 240:
             countdownNum = 4 - (text_counter_1v1 / 60)
             countdownNum = math.floor(countdownNum)
             if text_counter_1v1 >= 180:
-                draw_text("GO", 217, 200, 40, (255, 0, 0))
+                draw_text("GO", 225, 210, 40, (255, 0, 0))
                 draw_text("Catch those apples!", 114 , 250, 40, (255, 0, 0))
 
             else:
-                draw_text(countdownNum, 242, 215, 40, (255, 0, 0))
+                draw_text(countdownNum, 240, 222, 40, (255, 0, 0))
             
-                
+            player1_rect = pygame.Rect(100,400,120, 55)
+            player2_rect = pygame.Rect(400,400,120,55)    
     else:
     
         p1_speed = 9
@@ -994,22 +997,30 @@ def draw_1v1():
     
 def draw_tiebreaker():
     global p1_score, p2_score, tiebreaker_apples, gameState, apples,tiebreaker_text_counter
+    global player1_rect,player2_rect
     canvas.fill((21, 39, 237))
     tiebreaker_text_counter += 1
-    if tiebreaker_text_counter < 120:
-        draw_text("TIEBREAKER!", 150, 200, 40, (255, 0, 0))
-        draw_text("First to 11 wins!", 143 , 250, 40, (255, 0, 0))
-    else:      
-    
+    if tiebreaker_text_counter < 240:
+        countdownNum = 4 - (tiebreaker_text_counter / 60)
+        countdownNum = math.floor(countdownNum)
+        if tiebreaker_text_counter >= 180:
+            draw_text("TIEBREAKER!", 150, 200, 40, (255, 0, 0))
+            draw_text("First to 11 wins!", 143 , 250, 40, (255, 0, 0))
+        else:      
+            
+            draw_text(countdownNum, 240, 222, 40, (255, 0, 0))
+                        
+        player1_rect = pygame.Rect(100,400,120, 55)
+        player2_rect = pygame.Rect(400,400,120,55)      
+    else:
         draw_text("Apples left: " + str(tiebreaker_apples), 176, 28, 25, (255, 0, 0), anchor="midleft")
-
 
         if not apples:
             apples.add(Apple(3))
-    
         
-
             
+
+                
         apples.update()
         
         player1_hitbox = pygame.Rect(player1_rect.x - 49, player1_rect.y - 49, 149, 49)
