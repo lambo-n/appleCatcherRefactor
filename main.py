@@ -226,11 +226,22 @@ def current_basket_img(hasPear, hasOrange):
     return basket
 
 
+def viewport():
+    """Largest canvas-aspect rect centered in the window (black bars fill the rest)."""
+    w, h = screen.get_size()
+    scale = min(w / CANVAS_SIZE[0], h / CANVAS_SIZE[1])
+    rect = pygame.Rect(0, 0, max(int(CANVAS_SIZE[0] * scale), 1),
+                       max(int(CANVAS_SIZE[1] * scale), 1))
+    rect.center = (w // 2, h // 2)
+    return rect
+
+
 def to_canvas(pos):
     """Map a window-space point into canvas space."""
     mx, my = pos
-    w, h = screen.get_size()
-    return mx * CANVAS_SIZE[0] / w, my * CANVAS_SIZE[1] / h
+    view = viewport()
+    return ((mx - view.x) * CANVAS_SIZE[0] / view.w,
+            (my - view.y) * CANVAS_SIZE[1] / view.h)
 
 
 def mouse_canvas():
@@ -1184,9 +1195,12 @@ while running:
         draw_text(str(int(mx)) + ", " + str(int(my)), 20, 497, 15, (255, 0, 0),
                   anchor="bottomleft")
 
-    # Scale the fixed canvas up to the live window and present.
+    # Scale the fixed canvas into the aspect-correct viewport and present,
+    # letterboxing the rest of the window in black.
     # smoothscale anti-aliases the upscale so text/edges aren't pixelated.
-    pygame.transform.smoothscale(canvas, screen.get_size(), screen)
+    view = viewport()
+    screen.fill((0, 0, 0))
+    pygame.transform.smoothscale(canvas, view.size, screen.subsurface(view))
     pygame.display.flip()
     clock.tick(60)
 
