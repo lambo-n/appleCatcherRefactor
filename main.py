@@ -914,8 +914,8 @@ def update_and_draw_play():
 def draw_1v1():
     global p1_score, p2_score, timeLeft, difficulty, p1_speed, p2_speed, boosterSpawnCooldown ,boosters, p1_speedBoostTimer, p2_speedBoostTimer, boostLength, boostAmount,text_counter_1v1
     global player1_rect,player2_rect,bgIndex,bgColors
-    canvas.fill((21, 39, 237))
-    bgIndex = (bgIndex + 1) % len(bgColors) 
+    canvas.fill(bgColors[bgIndex])
+
     text_counter_1v1 += 1
     if text_counter_1v1 < 240:
             countdownNum = 4 - (text_counter_1v1 / 60)
@@ -1010,7 +1010,7 @@ def draw_1v1():
 def draw_tiebreaker():
     global p1_score, p2_score, tiebreaker_apples, gameState, apples,tiebreaker_text_counter
     global player1_rect,player2_rect
-    canvas.fill((21, 39, 237))
+    canvas.fill(bgColors[bgIndex])
     tiebreaker_text_counter += 1
     if tiebreaker_text_counter < 240:
         countdownNum = 4 - (tiebreaker_text_counter / 60)
