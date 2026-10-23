@@ -747,7 +747,7 @@ def draw_settings():
     draw_text_centered("Back", BTN_SETTINGS_BACK, 18, (0, 0, 0))
 
     pygame.draw.rect(canvas, (220, 220, 220), BTN_BG_COLOR, border_radius=15)
-    draw_text_centered("Background color", BTN_BG_COLOR, 18, (0, 0, 0))
+    draw_text_centered("Change background color", BTN_BG_COLOR, 18, (0, 0, 0))
 
     pygame.draw.rect(canvas, (220, 220, 220), BTN_CORDS, border_radius=15)
     draw_text_centered("Cords:ON" if showCords else "Cords:OFF", BTN_CORDS, 18, (0, 0, 0))
