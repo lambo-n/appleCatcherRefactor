@@ -913,8 +913,9 @@ def update_and_draw_play():
 
 def draw_1v1():
     global p1_score, p2_score, timeLeft, difficulty, p1_speed, p2_speed, boosterSpawnCooldown ,boosters, p1_speedBoostTimer, p2_speedBoostTimer, boostLength, boostAmount,text_counter_1v1
-    global player1_rect,player2_rect
+    global player1_rect,player2_rect,bgIndex,bgColors
     canvas.fill((21, 39, 237))
+    bgIndex = (bgIndex + 1) % len(bgColors) 
     text_counter_1v1 += 1
     if text_counter_1v1 < 240:
             countdownNum = 4 - (text_counter_1v1 / 60)
@@ -1155,7 +1156,8 @@ while running:
 
     if gameState not in ("settings", "gameOver"):
         canvas.fill(bgColors[bgIndex])
-
+    if gameState in ("1v1", "tiebreaker"):
+        canvas.fill(bgColors[bgIndex])
 
     if orangeBoughtFlashFrames > 0:
         orangeBoughtFlashFrames -= 1
