@@ -6,1073 +6,1071 @@
 # without any per-primitive scaling math.
 import math
 import asyncio
+
 import pygame 
 import random
 import os
 from apple import Apple
 from booster import Booster
-
 pygame.init()
+
+CANVAS_SIZE = (500, 500)
+WHITE = (255, 255, 255)
+
 screen = pygame.display.set_mode((650, 650), pygame.RESIZABLE)
-clock = pygame.time.Clock()
 pygame.display.set_caption("Apple Catcher")
-
-async def main():
-    global screen, clock
-        
-    
-    CANVAS_SIZE = (500, 500)
-    WHITE = (255, 255, 255)
-    canvas = pygame.Surface(CANVAS_SIZE) 
-
-    running = True
+canvas = pygame.Surface(CANVAS_SIZE)    
+clock = pygame.time.Clock()
+running = True
 
 
-    # ----------------------------------------------------------------------
-    # Asset loading
-    # ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
+# Asset loading
+# ----------------------------------------------------------------------
 
-    def load_img(filename):
-        path = os.path.join("assets", filename)
-        try:
-            return pygame.image.load(path).convert_alpha()
-        except Exception:
-            return None
-
-
-    alpsimg = load_img("pixil-frame-0 (6).png")
-    pauseimg = load_img("pause.png")
-    heart = load_img("heartemoji.png")
-    resumeimg = load_img("resume.png")
-    basket = load_img("download__4_-removebg-preview.png")
-    orange = load_img("ORANGE.png")
-    pear = load_img("PEAR.png")
-    settings_img = load_img("settings.png")
-    trail_img = load_img("trail.png")
+def load_img(filename):
+    path = os.path.join("assets", filename)
+    try:
+        return pygame.image.load(path).convert_alpha()
+    except Exception:
+        return None
 
 
-    # ----------------------------------------------------------------------
-    # Native drawing helpers (cached fonts + cached scaled images)
-    # ----------------------------------------------------------------------
-
-    _font_cache = {}
-    _scaled_cache = {}
-
-
-    def get_font(size):
-        font = _font_cache.get(size)
-        if font is None:
-            font = pygame.font.Font(None, size)
-            _font_cache[size] = font
-        return font
+alpsimg = load_img("pixil-frame-0 (6).png")
+pauseimg = load_img("pause.png")
+heart = load_img("heartemoji.png")
+resumeimg = load_img("resume.png")
+basket = load_img("download__4_-removebg-preview.png")
+orange = load_img("ORANGE.png")
+pear = load_img("PEAR.png")
+settings_img = load_img("settings.png")
+trail_img = load_img("trail.png")
 
 
-    def draw_img(img, x, y, w, h):
-        """Blit an image scaled to (w, h) at (x, y). Scaled results are cached."""
-        if img is None:
-            return
-        key = (id(img), w, h)
-        scaled = _scaled_cache.get(key)
-        if scaled is None:
-            scaled = pygame.transform.scale(img, (w, h))
-            _scaled_cache[key] = scaled
-        canvas.blit(scaled, (x, y))
+# ----------------------------------------------------------------------
+# Native drawing helpers (cached fonts + cached scaled images)
+# ----------------------------------------------------------------------
+
+_font_cache = {}
+_scaled_cache = {}
 
 
-    def draw_text(msg, x, y, size, color, anchor="topleft"):
-        surf = get_font(size).render(str(msg), True, color)
-        canvas.blit(surf, surf.get_rect(**{anchor: (x, y)}))
+def get_font(size):
+    font = _font_cache.get(size)
+    if font is None:
+        font = pygame.font.Font(None, size)
+        _font_cache[size] = font
+    return font
 
 
-    def draw_text_centered(msg, rect, size, color):
-        surf = get_font(size).render(str(msg), True, color)
-        canvas.blit(surf, surf.get_rect(center=rect.center))
-
-    def format_time(seconds):
-        minutes = seconds // 60
-        seconds = seconds % 60
-        return f"{minutes}:{seconds:02d}"
-
-    def display_time_left():
-        global timeLeft
-        draw_text("Time Left: " + format_time(timeLeft), 176, 28, 25, (255, 0, 0), anchor="midleft")
+def draw_img(img, x, y, w, h):
+    """Blit an image scaled to (w, h) at (x, y). Scaled results are cached."""
+    if img is None:
+        return
+    key = (id(img), w, h)
+    scaled = _scaled_cache.get(key)
+    if scaled is None:
+        scaled = pygame.transform.scale(img, (w, h))
+        _scaled_cache[key] = scaled
+    canvas.blit(scaled, (x, y))
 
 
-    # ----------------------------------------------------------------------
-    # Layout: button hitboxes as pygame.Rect (canvas space)
-    # ----------------------------------------------------------------------
-
-    BTN_PAUSE = pygame.Rect(447, 10, 50, 50)
-    BTN_MENU_PAUSED = pygame.Rect(320, 11, 100, 50)
-    BTN_SETTINGS_PAUSED = pygame.Rect(254, 11, 50, 50)
-
-    BTN_1V1_RESUME = pygame.Rect(447, 10, 50, 50)
-    BTN_1V1_PAUSE = pygame.Rect(448.5, 448, 50, 50)
-
-    BTN_LEVEL1 = pygame.Rect(75, 200, 100, 50)
-    BTN_LEVEL2 = pygame.Rect(200, 200, 100, 50)
-    BTN_LEVEL3 = pygame.Rect(325, 200, 100, 50)
-    BTN_SHOP = pygame.Rect(200, 350, 100, 50)
-    BTN_SETTINGS_MENU = pygame.Rect(0, 0, 50, 50)
-    BTN_CONTINUE = pygame.Rect(50, 0, 100, 50)
-    BTN_1V1 = pygame.Rect(200,280,100,50)
-    BTN_SETTINGS_BACK = pygame.Rect(410, 460, 90, 40)
-    BTN_BG_COLOR = pygame.Rect(110, 120, 270, 50)
-    BTN_CORDS = pygame.Rect(110, 180, 270, 50)
-
-    BTN_GAMEOVER_MENU = pygame.Rect(150, 300, 200, 50)
-
-    BTN_SHOP_BACK = pygame.Rect(0, 430, 100, 69)
-    SHOP_ORANGE = pygame.Rect(10, 150, 80, 30)
-    SHOP_PEAR = pygame.Rect(120, 150, 80, 30)
-    SHOP_TRAIL = pygame.Rect(230, 150, 80, 30)
-    BTN_P1_1V1_SHOP = pygame.Rect(386,390,100,50)
-    BTN_P2_1V1_SHOP = pygame.Rect(386,390,100,50)
+def draw_text(msg, x, y, size, color, anchor="topleft"):
+    surf = get_font(size).render(str(msg), True, color)
+    canvas.blit(surf, surf.get_rect(**{anchor: (x, y)}))
 
 
-    # ----------------------------------------------------------------------
-    # Game state
-    # ----------------------------------------------------------------------
+def draw_text_centered(msg, rect, size, color):
+    surf = get_font(size).render(str(msg), True, color)
+    canvas.blit(surf, surf.get_rect(center=rect.center))
 
-    basket_rect = pygame.Rect(191, 220, 100, 50)
+def format_time(seconds):
+    minutes = seconds // 60
+    seconds = seconds % 60
+    return f"{minutes}:{seconds:02d}"
 
-    player1_pos = pygame.Vector2(100, 400)
-    player2_pos = pygame.Vector2(400, 400)
+def display_time_left():
+    global timeLeft
+    draw_text("Time Left: " + format_time(timeLeft), 176, 28, 25, (255, 0, 0), anchor="midleft")
 
-    player1_rect = pygame.Rect(player1_pos.x, player1_pos.y, 100, 50)
-    player2_rect = pygame.Rect(player2_pos.x, player2_pos.y, 100, 50)
 
-    apples = pygame.sprite.Group()
-    boosters = pygame.sprite.Group()
-    score = 0   
-    p1_score = 0
-    p2_score = 0
-    lives = 3
-    difficulty = 3
-    gameState = "menu"
-    previousState = "menu"
-    alps = 0
-    speed = 9
-    p1_speed = 9
-    p2_speed = 9
-    baseSpeed = 9
-    baseSpeed_1v1 = 9
-    baseSpeed_1v1 = 9
+# ----------------------------------------------------------------------
+# Layout: button hitboxes as pygame.Rect (canvas space)
+# ----------------------------------------------------------------------
+
+BTN_PAUSE = pygame.Rect(447, 10, 50, 50)
+BTN_MENU_PAUSED = pygame.Rect(320, 11, 100, 50)
+BTN_SETTINGS_PAUSED = pygame.Rect(254, 11, 50, 50)
+
+BTN_1V1_RESUME = pygame.Rect(447, 10, 50, 50)
+BTN_1V1_PAUSE = pygame.Rect(448.5, 448, 50, 50)
+
+BTN_LEVEL1 = pygame.Rect(75, 200, 100, 50)
+BTN_LEVEL2 = pygame.Rect(200, 200, 100, 50)
+BTN_LEVEL3 = pygame.Rect(325, 200, 100, 50)
+BTN_SHOP = pygame.Rect(200, 350, 100, 50)
+BTN_SETTINGS_MENU = pygame.Rect(0, 0, 50, 50)
+BTN_CONTINUE = pygame.Rect(50, 0, 100, 50)
+BTN_1V1 = pygame.Rect(200,280,100,50)
+BTN_SETTINGS_BACK = pygame.Rect(410, 460, 90, 40)
+BTN_BG_COLOR = pygame.Rect(110, 120, 270, 50)
+BTN_CORDS = pygame.Rect(110, 180, 270, 50)
+
+BTN_GAMEOVER_MENU = pygame.Rect(150, 300, 200, 50)
+
+BTN_SHOP_BACK = pygame.Rect(0, 430, 100, 69)
+SHOP_ORANGE = pygame.Rect(10, 150, 80, 30)
+SHOP_PEAR = pygame.Rect(120, 150, 80, 30)
+SHOP_TRAIL = pygame.Rect(230, 150, 80, 30)
+BTN_P1_1V1_SHOP = pygame.Rect(386,390,100,50)
+BTN_P2_1V1_SHOP = pygame.Rect(386,390,100,50)
+
+
+# ----------------------------------------------------------------------
+# Game state
+# ----------------------------------------------------------------------
+
+basket_rect = pygame.Rect(191, 220, 100, 50)
+
+player1_pos = pygame.Vector2(100, 400)
+player2_pos = pygame.Vector2(400, 400)
+
+player1_rect = pygame.Rect(player1_pos.x, player1_pos.y, 100, 50)
+player2_rect = pygame.Rect(player2_pos.x, player2_pos.y, 100, 50)
+
+apples = pygame.sprite.Group()
+boosters = pygame.sprite.Group()
+score = 0   
+p1_score = 0
+p2_score = 0
+lives = 3
+difficulty = 3
+gameState = "menu"
+previousState = "menu"
+alps = 0
+speed = 9
+p1_speed = 9
+p2_speed = 9
+baseSpeed = 9
+baseSpeed_1v1 = 9
+baseSpeed_1v1 = 9
+speedBoostTimer = 0
+p1_speedBoostTimer = 0
+p2_speedBoostTimer = 0
+boostAmount = 4
+boostAmount_1v1 = 4 
+boostLength = 150
+boosterSpawnCooldown = 0
+p1_boosterSpawnCooldown = 0
+p2_boosterSpawnCooldown = 0
+trailPoints = []
+p1_trailPoints = []
+p2_trailPoints = []
+trailMaxLength = 30
+save = False
+saveLevel = 1
+showCords = False
+timerEvent = pygame.USEREVENT + 1
+pygame.time.set_timer(timerEvent, 900)
+timeLeft = 90
+tiebreaker_apples = 11
+tiebreaker_text_counter = 0
+text_counter_1v1 = 0
+
+bgColors = [
+    (21, 39, 237), (219, 98, 22), (56, 217, 75), (245, 232, 93),
+    (0, 255, 0), (255, 255, 0), (0, 255, 255), (255, 0, 255),
+    (255, 165, 0), (128, 0, 128), (255, 192, 203), (165, 42, 42),
+    (0, 128, 0), (0, 0, 128), (0, 128, 128), (128, 128, 0), (128, 128, 128),
+]
+bgIndex = 0
+bgSettings = [
+    (30, 30, 30), (219, 98, 22), (56, 217, 75), (245, 232, 93),
+    (0, 255, 0), (255, 255, 0), (0, 255, 255), (255, 0, 255),
+    (255, 165, 0), (128, 0, 128), (255, 192, 203), (165, 42, 42),
+    (0, 128, 0), (0, 0, 128), (0, 128, 128), (128, 128, 0), (128, 128, 128),
+]
+
+orangeOwned = orangeEquipped = False
+p1_orangeOwned = False
+p1_orangeEquipped = False
+p2_orangeOwned = p2_orangeEquipped = False
+pearOwned = pearEquipped = False
+p1_pearOwned  = False
+p1_pearEquipped = False
+p2_pearOwned = False
+p2_pearEquipped = False
+trailOwned = trailEquipped = False
+p1_trailOwned = False
+p1_trailEquipped = False
+p2_trailOwned = False
+p2_trailEquipped = False
+orangeBoughtFlashFrames = pearBoughtFlashFrames = trailBoughtFlashFrames = 0
+BOUGHT_FLASH_MAX = 45
+p1_orangeEquipped = False
+
+
+# Faint red trail stamp, built once.
+trail_stamp = pygame.Surface((10, 10), pygame.SRCALPHA)
+pygame.draw.circle(trail_stamp, (237, 9, 9, 80), (5, 5), 5)
+
+
+# ----------------------------------------------------------------------
+# Game helpers
+# ----------------------------------------------------------------------
+
+def current_basket_img(hasPear, hasOrange):
+    if hasPear:
+        return pear
+    if hasOrange:
+        return orange
+    return basket
+
+
+def viewport():
+    """Largest canvas-aspect rect centered in the window (black bars fill the rest)."""
+    w, h = screen.get_size()
+    scale = min(w / CANVAS_SIZE[0], h / CANVAS_SIZE[1])
+    rect = pygame.Rect(0, 0, max(int(CANVAS_SIZE[0] * scale), 1),
+                       max(int(CANVAS_SIZE[1] * scale), 1))
+    rect.center = (w // 2, h // 2)
+    return rect
+
+
+def to_canvas(pos):
+    """Map a window-space point into canvas space."""
+    mx, my = pos
+    view = viewport()
+    return ((mx - view.x) * CANVAS_SIZE[0] / view.w,
+            (my - view.y) * CANVAS_SIZE[1] / view.h)
+
+
+def mouse_canvas():
+    """Current mouse position mapped from window space into canvas space."""
+    return to_canvas(pygame.mouse.get_pos())
+
+
+def draw_trail():
+    for (x, y) in trailPoints:
+        canvas.blit(trail_stamp, trail_stamp.get_rect(center=(x, y)))
+
+def p1_draw_trail():
+    for (x, y) in p1_trailPoints:
+        canvas.blit(trail_stamp, trail_stamp.get_rect(center=(x, y)))
+
+def p2_draw_trail():
+    for (x, y) in p2_trailPoints:
+        canvas.blit(trail_stamp, trail_stamp.get_rect(center=(x, y)))
+
+
+def show_score():
+    draw_text("Score: " + str(score), 41, 25, 25, WHITE)
+
+
+def show_lives():
+    for i in range(lives):
+        draw_img(heart, 330 + i * 50, 425, 70, 50)
+
+
+def start_game(level):
+    global difficulty, baseSpeed, saveLevel, speed, speedBoostTimer, gameState
+    global score, lives, alps, save, timeLeft
+    if level == 1:
+        difficulty, baseSpeed, saveLevel = 1, 9, 1
+    elif level == 2:
+        difficulty, baseSpeed, saveLevel = 2, 9, 2
+    elif level == 3:
+        difficulty, baseSpeed, saveLevel = 3, 11, 3
+    speed = baseSpeed
     speedBoostTimer = 0
-    p1_speedBoostTimer = 0
-    p2_speedBoostTimer = 0
-    boostAmount = 4
-    boostAmount_1v1 = 4 
-    boostLength = 150
-    boosterSpawnCooldown = 0
-    p1_boosterSpawnCooldown = 0
-    p2_boosterSpawnCooldown = 0
-    trailPoints = []
-    p1_trailPoints = []
-    p2_trailPoints = []
-    trailMaxLength = 30
-    save = False
-    saveLevel = 1
-    showCords = False
-    timerEvent = pygame.USEREVENT + 1
-    pygame.time.set_timer(timerEvent, 900)
-    timeLeft = 90
-    tiebreaker_apples = 11
-    tiebreaker_text_counter = 0
-    text_counter_1v1 = 0
-
-    bgColors = [
-        (21, 39, 237), (219, 98, 22), (56, 217, 75), (245, 232, 93),
-        (0, 255, 0), (255, 255, 0), (0, 255, 255), (255, 0, 255),
-        (255, 165, 0), (128, 0, 128), (255, 192, 203), (165, 42, 42),
-        (0, 128, 0), (0, 0, 128), (0, 128, 128), (128, 128, 0), (128, 128, 128),
-    ]
-    bgIndex = 0
-    bgSettings = [
-        (30, 30, 30), (219, 98, 22), (56, 217, 75), (245, 232, 93),
-        (0, 255, 0), (255, 255, 0), (0, 255, 255), (255, 0, 255),
-        (255, 165, 0), (128, 0, 128), (255, 192, 203), (165, 42, 42),
-        (0, 128, 0), (0, 0, 128), (0, 128, 128), (128, 128, 0), (128, 128, 128),
-    ]
-
-    orangeOwned = orangeEquipped = False
-    p1_orangeOwned = False
-    p1_orangeEquipped = False
-    p2_orangeOwned = p2_orangeEquipped = False
-    pearOwned = pearEquipped = False
-    p1_pearOwned  = False
-    p1_pearEquipped = False
-    p2_pearOwned = False
-    p2_pearEquipped = False
-    trailOwned = trailEquipped = False
-    p1_trailOwned = False
-    p1_trailEquipped = False
-    p2_trailOwned = False
-    p2_trailEquipped = False
-    orangeBoughtFlashFrames = pearBoughtFlashFrames = trailBoughtFlashFrames = 0
-    BOUGHT_FLASH_MAX = 45
-    p1_orangeEquipped = False
+    boosters.empty()
+    apples.empty()
+    score = 0
+    lives = 3
+    basket_rect.topleft = (191, 220)
+    gameState = "play"
 
 
-    # Faint red trail stamp, built once.
-    trail_stamp = pygame.Surface((10, 10), pygame.SRCALPHA)
-    pygame.draw.circle(trail_stamp, (237, 9, 9, 80), (5, 5), 5)
+# ----------------------------------------------------------------------
+# Event handling
+# ----------------------------------------------------------------------
+
+def handle_keydown(event):
+    global gameState, showCords, bgIndex
+    k = event.key
+
+    if gameState == "menu":
+        if k == pygame.K_1:
+            start_game(1)
+        elif k == pygame.K_2:
+            start_game(2)
+        elif k == pygame.K_3:
+            start_game(3)
+        elif k == pygame.K_BACKQUOTE:
+            gameState = "shop"
+        elif k == pygame.K_s:
+            gameState = "settings"
+        elif k == pygame.K_c:
+            gameState = "paused"
+    elif gameState == "shop":
+        if k in (pygame.K_t, pygame.K_b):
+            gameState = "menu"
+    elif gameState == "settings":
+        if k == pygame.K_b:
+            gameState = "menu"
+        elif k == pygame.K_c:
+            showCords = False
+        elif k == pygame.K_g:
+            bgIndex = (bgIndex + 1) % len(bgColors)
+    elif gameState == "paused":
+        if k == pygame.K_q:
+            gameState = "play"
+        elif k == pygame.K_b:
+            gameState = "menu"
+        elif k == pygame.K_s:
+            gameState = "settings"
+    elif gameState == "play":
+        if k == pygame.K_BACKQUOTE:
+            gameState = "paused"
+    elif gameState == "gameOver":
+        if k == pygame.K_SPACE:
+            gameState = "menu"
 
 
-    # ----------------------------------------------------------------------
-    # Game helpers
-    # ----------------------------------------------------------------------
+def handle_mouse_click(pos):
+    global gameState, save, previousState, bgIndex, showCords
+    global orangeOwned, orangeEquipped, alps, orangeBoughtFlashFrames
+    global pearOwned, pearEquipped, pearBoughtFlashFrames
+    global trailOwned, trailEquipped, trailPoints, trailBoughtFlashFrames, score, lives
+    global speedBoostTimer, speed, player1_rect, player2_rect, p1_score, p2_score, timeLeft, tiebreaker_apples,p1_pearOwned,p1_pearEquipped,p2_pearOwned,p2_pearEquipped,p1_orangeOwned,p1_orangeEquipped,p2_orangeOwned,p2_orangeEquipped,p1_trailOwned,p1_trailEquipped,p2_trailOwned,p2_trailEquipped
+    global text_counter_1v1,tiebreaker_text_counter
+    p = to_canvas(pos)
+    gs = gameState
 
-    def current_basket_img(hasPear, hasOrange):
-        if hasPear:
-            return pear
-        if hasOrange:
-            return orange
-        return basket
-
-
-    def viewport():
-        """Largest canvas-aspect rect centered in the window (black bars fill the rest)."""
-        w, h = screen.get_size()
-        scale = min(w / CANVAS_SIZE[0], h / CANVAS_SIZE[1])
-        rect = pygame.Rect(0, 0, max(int(CANVAS_SIZE[0] * scale), 1),
-                        max(int(CANVAS_SIZE[1] * scale), 1))
-        rect.center = (w // 2, h // 2)
-        return rect
-
-
-    def to_canvas(pos):
-        """Map a window-space point into canvas space."""
-        mx, my = pos
-        view = viewport()
-        return ((mx - view.x) * CANVAS_SIZE[0] / view.w,
-                (my - view.y) * CANVAS_SIZE[1] / view.h)
-
-
-    def mouse_canvas():
-        """Current mouse position mapped from window space into canvas space."""
-        return to_canvas(pygame.mouse.get_pos())
-
-
-    def draw_trail():
-        for (x, y) in trailPoints:
-            canvas.blit(trail_stamp, trail_stamp.get_rect(center=(x, y)))
-
-    def p1_draw_trail():
-        for (x, y) in p1_trailPoints:
-            canvas.blit(trail_stamp, trail_stamp.get_rect(center=(x, y)))
-
-    def p2_draw_trail():
-        for (x, y) in p2_trailPoints:
-            canvas.blit(trail_stamp, trail_stamp.get_rect(center=(x, y)))
-
-
-    def show_score():
-        draw_text("Score: " + str(score), 41, 25, 25, WHITE)
-
-
-    def show_lives():
-        for i in range(lives):
-            draw_img(heart, 330 + i * 50, 425, 70, 50)
-
-
-    def start_game(level):
-        global difficulty, baseSpeed, saveLevel, speed, speedBoostTimer, gameState
-        global score, lives, alps, save, timeLeft
-        if level == 1:
-            difficulty, baseSpeed, saveLevel = 1, 9, 1
-        elif level == 2:
-            difficulty, baseSpeed, saveLevel = 2, 9, 2
-        elif level == 3:
-            difficulty, baseSpeed, saveLevel = 3, 11, 3
-        speed = baseSpeed
-        speedBoostTimer = 0
-        boosters.empty()
-        apples.empty()
-        score = 0
-        lives = 3
-        basket_rect.topleft = (191, 220)
-        gameState = "play"
-
-
-    # ----------------------------------------------------------------------
-    # Event handling
-    # ----------------------------------------------------------------------
-
-    def handle_keydown(event):
-        global gameState, showCords, bgIndex
-        k = event.key
-
-        if gameState == "menu":
-            if k == pygame.K_1:
-                start_game(1)
-            elif k == pygame.K_2:
-                start_game(2)
-            elif k == pygame.K_3:
-                start_game(3)
-            elif k == pygame.K_BACKQUOTE:
-                gameState = "shop"
-            elif k == pygame.K_s:
-                gameState = "settings"
-            elif k == pygame.K_c:
-                gameState = "paused"
-        elif gameState == "shop":
-            if k in (pygame.K_t, pygame.K_b):
-                gameState = "menu"
-        elif gameState == "settings":
-            if k == pygame.K_b:
-                gameState = "menu"
-            elif k == pygame.K_c:
-                showCords = False
-            elif k == pygame.K_g:
-                bgIndex = (bgIndex + 1) % len(bgColors)
-        elif gameState == "paused":
-            if k == pygame.K_q:
-                gameState = "play"
-            elif k == pygame.K_b:
-                gameState = "menu"
-            elif k == pygame.K_s:
-                gameState = "settings"
-        elif gameState == "play":
-            if k == pygame.K_BACKQUOTE:
-                gameState = "paused"
-        elif gameState == "gameOver":
-            if k == pygame.K_SPACE:
-                gameState = "menu"
-
-
-    def handle_mouse_click(pos):
-        global gameState, save, previousState, bgIndex, showCords
-        global orangeOwned, orangeEquipped, alps, orangeBoughtFlashFrames
-        global pearOwned, pearEquipped, pearBoughtFlashFrames
-        global trailOwned, trailEquipped, trailPoints, trailBoughtFlashFrames, score, lives
-        global speedBoostTimer, speed, player1_rect, player2_rect, p1_score, p2_score, timeLeft, tiebreaker_apples,p1_pearOwned,p1_pearEquipped,p2_pearOwned,p2_pearEquipped,p1_orangeOwned,p1_orangeEquipped,p2_orangeOwned,p2_orangeEquipped,p1_trailOwned,p1_trailEquipped,p2_trailOwned,p2_trailEquipped
-        global text_counter_1v1,tiebreaker_text_counter
-        p = to_canvas(pos)
-        gs = gameState
-
-        if BTN_PAUSE.collidepoint(p):
-            if gs == "play":
-                gameState = "paused"
-                return
-            if gs == "paused":
-                gameState = "play"
-                return
-        
-        # if BTN_1V1_PAUSE.collidepoint(p):
-        #     if gs == "1v1":
-        #         gameState = "paused1v1"
-        #         return
-        
-        if BTN_1V1_RESUME.collidepoint(p):
-            if gs == "paused1v1":
-                gameState = "1v1"
-                return
-
+    if BTN_PAUSE.collidepoint(p):
+        if gs == "play":
+            gameState = "paused"
+            return
         if gs == "paused":
-            if BTN_MENU_PAUSED.collidepoint(p):
-                gameState = "menu"
-                save = True
-                return
-            if BTN_SETTINGS_PAUSED.collidepoint(p):
-                previousState = "paused"
-                gameState = "settings"
-                return
-
-        if gs == "settings":
-            if BTN_SETTINGS_BACK.collidepoint(p):
-                gameState = previousState
-                return
-            if BTN_BG_COLOR.collidepoint(p):
-                bgIndex = (bgIndex + 1) % len(bgColors)
-                return
-            if BTN_CORDS.collidepoint(p):
-                showCords = not showCords
-                return
-
-        if gs == "menu":
-            if BTN_LEVEL1.collidepoint(p):
-                start_game(1)
-                return
-            if BTN_LEVEL2.collidepoint(p):
-                start_game(2)
-                return
-            if BTN_LEVEL3.collidepoint(p):
-                start_game(3)
-                return
-            if BTN_SHOP.collidepoint(p):
-                gameState = "shop"
-                return
-            if BTN_SETTINGS_MENU.collidepoint(p):
-                previousState = "menu"
-                gameState = "settings"
-                return
-            if BTN_1V1.collidepoint(p):
-                gameState = "p1_1v1_shop"
-                return
-            
-
-
-            
-            if save and BTN_CONTINUE.collidepoint(p):
-                gameState = "paused"
-                return
-
-        if gs == "gameOver":
-            if BTN_GAMEOVER_MENU.collidepoint(p):
-                save = False
-                apples.empty()
-                boosters.empty()
-                score = 0
-                lives = 3
-                gameState = "menu"
-                speedBoostTimer = 0
-                speed = baseSpeed
-                basket_rect.topleft = (191, 220)
-                trailPoints = []
-                return
-        
-        if gs == "gameOver1v1":
-            if BTN_GAMEOVER_MENU.collidepoint(p):
-                save = False
-                apples.empty()
-                boosters.empty()
-                gameState = "menu"
-                speedBoostTimer = 0
-                speed = baseSpeed
-                basket_rect.topleft = (191, 220)
-                trailPoints = []
-                player1_rect.x = 100
-                player1_rect.y = 400
-                player2_rect.x = 400
-                player2_rect.y = 400
-                p1_score = 0
-                p2_score = 0
-                timeLeft = 90
-                return
-        
-
-        if gs == "shop" :
-            if BTN_SHOP_BACK.collidepoint(p):
-                gameState = "menu"
-                return
-            if SHOP_ORANGE.collidepoint(p):
-                if orangeBoughtFlashFrames > 0:
-                    return
-                if not orangeOwned:
-                    if alps >= 6:
-                        orangeOwned = True
-                        orangeEquipped = False
-                        alps -= 6
-                        orangeBoughtFlashFrames = BOUGHT_FLASH_MAX
-                    return
-                orangeEquipped = not orangeEquipped
-                if orangeEquipped:
-                    pearEquipped = False
-                return
-            if SHOP_PEAR.collidepoint(p):
-                if pearBoughtFlashFrames > 0:
-                    return
-                if not pearOwned:
-                    if alps >= 8:
-                        pearOwned = True
-                        alps -= 8
-                        pearBoughtFlashFrames = BOUGHT_FLASH_MAX
-                    return
-                pearEquipped = not pearEquipped
-                if pearEquipped:
-                    orangeEquipped = False
-                return
-            if SHOP_TRAIL.collidepoint(p):
-                if trailBoughtFlashFrames > 0:
-                    return
-                if not trailOwned:
-                    if alps >= 9:
-                        trailOwned = True
-                        alps -= 9
-                        trailBoughtFlashFrames = BOUGHT_FLASH_MAX
-                    return
-                trailEquipped = not trailEquipped
-                trailPoints = []
-                return
-
-
-        if gs == "p1_1v1_shop":
-            if BTN_P1_1V1_SHOP.collidepoint(p):
-                        gameState = "p2_1v1_shop"    
-                        return
-            if BTN_SHOP_BACK.collidepoint(p):
-                gameState = "menu"
-                return
-            if SHOP_ORANGE.collidepoint(p):
-                if orangeBoughtFlashFrames > 0:
-                    return
-                if not p1_orangeOwned:
-                    if alps >= 6:
-                        p1_orangeOwned = True
-                        p1_orangeEquipped = False
-                        alps -= 6
-                        orangeBoughtFlashFrames = BOUGHT_FLASH_MAX
-                    return
-                p1_orangeEquipped = not p1_orangeEquipped
-                if p1_orangeEquipped:
-                    p1_pearEquipped = False
-
-            if BTN_P1_1V1_SHOP.collidepoint(p):
-                gameState = "p2_1v1_shop"   
-                return
-
-            if SHOP_PEAR.collidepoint(p):
-                if pearBoughtFlashFrames > 0:
-                    return
-                if not p1_pearOwned:
-                    if alps >= 8:
-                        p1_pearOwned = True
-                        alps -= 8
-                        pearBoughtFlashFrames = BOUGHT_FLASH_MAX
-                    return
-                p1_pearEquipped = not p1_pearEquipped
-                if p1_pearEquipped:
-                    p1_orangeEquipped = False
-                return
-            if SHOP_TRAIL.collidepoint(p):
-                if trailBoughtFlashFrames > 0:
-                    return
-                if not p1_trailOwned:
-                    if alps >= 9:
-                        p1_trailOwned = True
-                        alps -= 9
-                        trailBoughtFlashFrames = BOUGHT_FLASH_MAX
-                    return
-                p1_trailEquipped = not p1_trailEquipped
-                trailPoints = []
-                return
-
-        if gs == "p2_1v1_shop":
-            if BTN_SHOP_BACK.collidepoint(p):
-                gameState = "p1_1v1_shop"
-                return
-
-            if BTN_P2_1V1_SHOP.collidepoint(p):
-                gameState = "1v1"
-                text_counter_1v1=0
-                return
-            
-            
-            if SHOP_ORANGE.collidepoint(p):
-                if orangeBoughtFlashFrames > 0:
-                    return
-                if not p2_orangeOwned:
-                    if alps >= 6:
-                        p2_orangeOwned = True
-                        p2_orangeEquipped = False
-                        alps -= 6
-                        orangeBoughtFlashFrames = BOUGHT_FLASH_MAX
-                    return
-                p2_orangeEquipped = not p2_orangeEquipped
-                if p2_orangeEquipped:
-                    p2_pearEquipped = False
-                return
-            if SHOP_PEAR.collidepoint(p):
-                if pearBoughtFlashFrames > 0:
-                    return
-                if not p2_pearOwned:
-                    if alps >= 8:
-                        p2_pearOwned = True
-                        alps -= 8
-                        pearBoughtFlashFrames = BOUGHT_FLASH_MAX
-                    return
-                p2_pearEquipped = not p2_pearEquipped
-                if p2_pearEquipped:
-                    p2_orangeEquipped = False
-                return
-            if SHOP_TRAIL.collidepoint(p):
-                if trailBoughtFlashFrames > 0:
-                    return
-                if not p2_trailOwned:
-                    if alps >= 9:
-                        p2_trailOwned = True
-                        alps -= 9
-                        trailBoughtFlashFrames = BOUGHT_FLASH_MAX
-                    return
-                p2_trailEquipped = not p2_trailEquipped
-                trailPoints = []
-                return
-
-
+            gameState = "play"
+            return
+    
+    # if BTN_1V1_PAUSE.collidepoint(p):
+    #     if gs == "1v1":
+    #         gameState = "paused1v1"
+    #         return
+    
+    if BTN_1V1_RESUME.collidepoint(p):
         if gs == "paused1v1":
-            if BTN_MENU_PAUSED.collidepoint(p):
-                gameState = "menu"
-                save = True
+            gameState = "1v1"
+            return
+
+    if gs == "paused":
+        if BTN_MENU_PAUSED.collidepoint(p):
+            gameState = "menu"
+            save = True
+            return
+        if BTN_SETTINGS_PAUSED.collidepoint(p):
+            previousState = "paused"
+            gameState = "settings"
+            return
+
+    if gs == "settings":
+        if BTN_SETTINGS_BACK.collidepoint(p):
+            gameState = previousState
+            return
+        if BTN_BG_COLOR.collidepoint(p):
+            bgIndex = (bgIndex + 1) % len(bgColors)
+            return
+        if BTN_CORDS.collidepoint(p):
+            showCords = not showCords
+            return
+
+    if gs == "menu":
+        if BTN_LEVEL1.collidepoint(p):
+            start_game(1)
+            return
+        if BTN_LEVEL2.collidepoint(p):
+            start_game(2)
+            return
+        if BTN_LEVEL3.collidepoint(p):
+            start_game(3)
+            return
+        if BTN_SHOP.collidepoint(p):
+            gameState = "shop"
+            return
+        if BTN_SETTINGS_MENU.collidepoint(p):
+            previousState = "menu"
+            gameState = "settings"
+            return
+        if BTN_1V1.collidepoint(p):
+            gameState = "p1_1v1_shop"
+            return
+        
+
+
+        
+        if save and BTN_CONTINUE.collidepoint(p):
+            gameState = "paused"
+            return
+
+    if gs == "gameOver":
+        if BTN_GAMEOVER_MENU.collidepoint(p):
+            save = False
+            apples.empty()
+            boosters.empty()
+            score = 0
+            lives = 3
+            gameState = "menu"
+            speedBoostTimer = 0
+            speed = baseSpeed
+            basket_rect.topleft = (191, 220)
+            trailPoints = []
+            return
+    
+    if gs == "gameOver1v1":
+        if BTN_GAMEOVER_MENU.collidepoint(p):
+            save = False
+            apples.empty()
+            boosters.empty()
+            gameState = "menu"
+            speedBoostTimer = 0
+            speed = baseSpeed
+            basket_rect.topleft = (191, 220)
+            trailPoints = []
+            player1_rect.x = 100
+            player1_rect.y = 400
+            player2_rect.x = 400
+            player2_rect.y = 400
+            p1_score = 0
+            p2_score = 0
+            timeLeft = 90
+            return
+    
+
+    if gs == "shop" :
+        if BTN_SHOP_BACK.collidepoint(p):
+            gameState = "menu"
+            return
+        if SHOP_ORANGE.collidepoint(p):
+            if orangeBoughtFlashFrames > 0:
                 return
-            
-            if BTN_SETTINGS_PAUSED.collidepoint(p):
-                previousState = "paused1v1"
-                gameState = "settings"
+            if not orangeOwned:
+                if alps >= 6:
+                    orangeOwned = True
+                    orangeEquipped = False
+                    alps -= 6
+                    orangeBoughtFlashFrames = BOUGHT_FLASH_MAX
                 return
-            
+            orangeEquipped = not orangeEquipped
+            if orangeEquipped:
+                pearEquipped = False
+            return
+        if SHOP_PEAR.collidepoint(p):
+            if pearBoughtFlashFrames > 0:
+                return
+            if not pearOwned:
+                if alps >= 8:
+                    pearOwned = True
+                    alps -= 8
+                    pearBoughtFlashFrames = BOUGHT_FLASH_MAX
+                return
+            pearEquipped = not pearEquipped
+            if pearEquipped:
+                orangeEquipped = False
+            return
+        if SHOP_TRAIL.collidepoint(p):
+            if trailBoughtFlashFrames > 0:
+                return
+            if not trailOwned:
+                if alps >= 9:
+                    trailOwned = True
+                    alps -= 9
+                    trailBoughtFlashFrames = BOUGHT_FLASH_MAX
+                return
+            trailEquipped = not trailEquipped
+            trailPoints = []
+            return
+
+
+    if gs == "p1_1v1_shop":
+        if BTN_P1_1V1_SHOP.collidepoint(p):
+                    gameState = "p2_1v1_shop"    
+                    return
+        if BTN_SHOP_BACK.collidepoint(p):
+            gameState = "menu"
+            return
+        if SHOP_ORANGE.collidepoint(p):
+            if orangeBoughtFlashFrames > 0:
+                return
+            if not p1_orangeOwned:
+                if alps >= 6:
+                    p1_orangeOwned = True
+                    p1_orangeEquipped = False
+                    alps -= 6
+                    orangeBoughtFlashFrames = BOUGHT_FLASH_MAX
+                return
+            p1_orangeEquipped = not p1_orangeEquipped
+            if p1_orangeEquipped:
+                p1_pearEquipped = False
+
+        if BTN_P1_1V1_SHOP.collidepoint(p):
+            gameState = "p2_1v1_shop"   
+            return
+
+        if SHOP_PEAR.collidepoint(p):
+            if pearBoughtFlashFrames > 0:
+                return
+            if not p1_pearOwned:
+                if alps >= 8:
+                    p1_pearOwned = True
+                    alps -= 8
+                    pearBoughtFlashFrames = BOUGHT_FLASH_MAX
+                return
+            p1_pearEquipped = not p1_pearEquipped
+            if p1_pearEquipped:
+                p1_orangeEquipped = False
+            return
+        if SHOP_TRAIL.collidepoint(p):
+            if trailBoughtFlashFrames > 0:
+                return
+            if not p1_trailOwned:
+                if alps >= 9:
+                    p1_trailOwned = True
+                    alps -= 9
+                    trailBoughtFlashFrames = BOUGHT_FLASH_MAX
+                return
+            p1_trailEquipped = not p1_trailEquipped
+            trailPoints = []
+            return
+
+    if gs == "p2_1v1_shop":
+        if BTN_SHOP_BACK.collidepoint(p):
+            gameState = "p1_1v1_shop"
+            return
+
+        if BTN_P2_1V1_SHOP.collidepoint(p):
+            gameState = "1v1"
+            text_counter_1v1=0
+            return
+        
+        
+        if SHOP_ORANGE.collidepoint(p):
+            if orangeBoughtFlashFrames > 0:
+                return
+            if not p2_orangeOwned:
+                if alps >= 6:
+                    p2_orangeOwned = True
+                    p2_orangeEquipped = False
+                    alps -= 6
+                    orangeBoughtFlashFrames = BOUGHT_FLASH_MAX
+                return
+            p2_orangeEquipped = not p2_orangeEquipped
+            if p2_orangeEquipped:
+                p2_pearEquipped = False
+            return
+        if SHOP_PEAR.collidepoint(p):
+            if pearBoughtFlashFrames > 0:
+                return
+            if not p2_pearOwned:
+                if alps >= 8:
+                    p2_pearOwned = True
+                    alps -= 8
+                    pearBoughtFlashFrames = BOUGHT_FLASH_MAX
+                return
+            p2_pearEquipped = not p2_pearEquipped
+            if p2_pearEquipped:
+                p2_orangeEquipped = False
+            return
+        if SHOP_TRAIL.collidepoint(p):
+            if trailBoughtFlashFrames > 0:
+                return
+            if not p2_trailOwned:
+                if alps >= 9:
+                    p2_trailOwned = True
+                    alps -= 9
+                    trailBoughtFlashFrames = BOUGHT_FLASH_MAX
+                return
+            p2_trailEquipped = not p2_trailEquipped
+            trailPoints = []
+            return
+
+
+    if gs == "paused1v1":
+        if BTN_MENU_PAUSED.collidepoint(p):
+            gameState = "menu"
+            save = True
+            return
+        
+        if BTN_SETTINGS_PAUSED.collidepoint(p):
+            previousState = "paused1v1"
+            gameState = "settings"
+            return
+        
 
 
 
 
-    # ----------------------------------------------------------------------
-    # Drawing per state
-    # ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
+# Drawing per state
+# ----------------------------------------------------------------------
 
-    def draw_menu():
-        for r in (BTN_LEVEL1, BTN_LEVEL2, BTN_LEVEL3, BTN_SHOP, BTN_SETTINGS_MENU,BTN_1V1):
-            pygame.draw.rect(canvas, WHITE, r)
-        draw_img(settings_img, -10, 0, 70, 50)
+def draw_menu():
+    for r in (BTN_LEVEL1, BTN_LEVEL2, BTN_LEVEL3, BTN_SHOP, BTN_SETTINGS_MENU,BTN_1V1):
+        pygame.draw.rect(canvas, WHITE, r)
+    draw_img(settings_img, -10, 0, 70, 50)
 
-        c = (31, 150, 255)
-        draw_text_centered("Level 1", BTN_LEVEL1, 20, c)
-        draw_text_centered("Level 2", BTN_LEVEL2, 20, c)
-        draw_text_centered("Level 3", BTN_LEVEL3, 20, c)
-        draw_text_centered("Shop", BTN_SHOP, 20, c)
-        draw_text_centered("1v1",BTN_1V1,20,c)
-        if save:
-            pygame.draw.rect(canvas, WHITE, BTN_CONTINUE)
-            draw_text_centered("Continue", pygame.Rect(50, 0, 100, 25), 17, (31, 150, 25))
-            draw_text_centered("Level " + str(saveLevel),
-                            pygame.Rect(50, 25, 100, 25), 17, (31, 150, 25))
+    c = (31, 150, 255)
+    draw_text_centered("Level 1", BTN_LEVEL1, 20, c)
+    draw_text_centered("Level 2", BTN_LEVEL2, 20, c)
+    draw_text_centered("Level 3", BTN_LEVEL3, 20, c)
+    draw_text_centered("Shop", BTN_SHOP, 20, c)
+    draw_text_centered("1v1",BTN_1V1,20,c)
+    if save:
+        pygame.draw.rect(canvas, WHITE, BTN_CONTINUE)
+        draw_text_centered("Continue", pygame.Rect(50, 0, 100, 25), 17, (31, 150, 25))
+        draw_text_centered("Level " + str(saveLevel),
+                           pygame.Rect(50, 25, 100, 25), 17, (31, 150, 25))
 
 
-    def _draw_shop_item(item_rect, icon_rect, owned, equipped, flash, cost, hovered):
-        pygame.draw.rect(canvas, WHITE, icon_rect)
-        pygame.draw.rect(canvas, WHITE, item_rect)
-        if flash > 0:
-            draw_text_centered("Bought", item_rect, 20, (0, 128, 0))
-        elif not owned:
-            if hovered:
-                if alps >= cost:
-                    draw_text_centered("Buy", item_rect, 20, (0, 128, 0))
-                else:
-                    draw_text_centered("Not enough", item_rect, 13, (232, 46, 53))
+def _draw_shop_item(item_rect, icon_rect, owned, equipped, flash, cost, hovered):
+    pygame.draw.rect(canvas, WHITE, icon_rect)
+    pygame.draw.rect(canvas, WHITE, item_rect)
+    if flash > 0:
+        draw_text_centered("Bought", item_rect, 20, (0, 128, 0))
+    elif not owned:
+        if hovered:
+            if alps >= cost:
+                draw_text_centered("Buy", item_rect, 20, (0, 128, 0))
             else:
-                draw_text_centered(str(cost) + " Alps", item_rect, 20, (237, 141, 45))
-        elif equipped:
-            draw_text_centered("Unequip", item_rect, 18, (237, 141, 45))
+                draw_text_centered("Not enough", item_rect, 13, (232, 46, 53))
         else:
-            draw_text_centered("Equip", item_rect, 20, (0, 128, 0) if hovered else (237, 141, 45))
+            draw_text_centered(str(cost) + " Alps", item_rect, 20, (237, 141, 45))
+    elif equipped:
+        draw_text_centered("Unequip", item_rect, 18, (237, 141, 45))
+    else:
+        draw_text_centered("Equip", item_rect, 20, (0, 128, 0) if hovered else (237, 141, 45))
 
 
-    def draw_shop():
-        global p
-        p = mouse_canvas()
+def draw_shop():
+    global p
+    p = mouse_canvas()
 
-        draw_img(alpsimg, 330, 387, 200, 200)
-        draw_text(":", 455, 463, 20, (48, 217, 205))
-        draw_text(str(alps), 465, 465, 20, (48, 217, 205))
+    draw_img(alpsimg, 330, 387, 200, 200)
+    draw_text(":", 455, 463, 20, (48, 217, 205))
+    draw_text(str(alps), 465, 465, 20, (48, 217, 205))
 
-        pygame.draw.rect(canvas, WHITE, pygame.Rect(0, 0, 500, 50))
-        draw_text_centered("WELCOME TO THE SHOP", pygame.Rect(0, 0, 500, 50), 40, (237, 22, 22))
+    pygame.draw.rect(canvas, WHITE, pygame.Rect(0, 0, 500, 50))
+    draw_text_centered("WELCOME TO THE SHOP", pygame.Rect(0, 0, 500, 50), 40, (237, 22, 22))
 
-        pygame.draw.rect(canvas, WHITE, BTN_SHOP_BACK)
-        draw_text_centered("Back To Menu", BTN_SHOP_BACK, 14, (237, 22, 22))
+    pygame.draw.rect(canvas, WHITE, BTN_SHOP_BACK)
+    draw_text_centered("Back To Menu", BTN_SHOP_BACK, 14, (237, 22, 22))
 
-        _draw_shop_item(SHOP_ORANGE, pygame.Rect(10, 70, 80, 70), orangeOwned,
-                        orangeEquipped, orangeBoughtFlashFrames, 6, SHOP_ORANGE.collidepoint(p))
-        draw_img(orange, 20, 70, 60, 60)
+    _draw_shop_item(SHOP_ORANGE, pygame.Rect(10, 70, 80, 70), orangeOwned,
+                    orangeEquipped, orangeBoughtFlashFrames, 6, SHOP_ORANGE.collidepoint(p))
+    draw_img(orange, 20, 70, 60, 60)
 
-        _draw_shop_item(SHOP_PEAR, pygame.Rect(120, 70, 80, 70), pearOwned,
-                        pearEquipped, pearBoughtFlashFrames, 8, SHOP_PEAR.collidepoint(p))
-        draw_img(pear, 121, 64, 80, 80)
+    _draw_shop_item(SHOP_PEAR, pygame.Rect(120, 70, 80, 70), pearOwned,
+                    pearEquipped, pearBoughtFlashFrames, 8, SHOP_PEAR.collidepoint(p))
+    draw_img(pear, 121, 64, 80, 80)
 
-        _draw_shop_item(SHOP_TRAIL, pygame.Rect(230, 71, 80, 70), trailOwned,
-                        trailEquipped, trailBoughtFlashFrames, 9, SHOP_TRAIL.collidepoint(p))
-        draw_img(trail_img, 240, 76, 60, 60)
+    _draw_shop_item(SHOP_TRAIL, pygame.Rect(230, 71, 80, 70), trailOwned,
+                    trailEquipped, trailBoughtFlashFrames, 9, SHOP_TRAIL.collidepoint(p))
+    draw_img(trail_img, 240, 76, 60, 60)
 
-    def draw_p1_1v1_shop():
-        global p
-        p = mouse_canvas()
+def draw_p1_1v1_shop():
+    global p
+    p = mouse_canvas()
 
-        draw_img(alpsimg, 330, 387, 200, 200)
-        draw_text(":", 455, 463, 20, (48, 217, 205))
-        draw_text(str(alps), 465, 465, 20, (48, 217, 205))
+    draw_img(alpsimg, 330, 387, 200, 200)
+    draw_text(":", 455, 463, 20, (48, 217, 205))
+    draw_text(str(alps), 465, 465, 20, (48, 217, 205))
 
-        pygame.draw.rect(canvas, WHITE, pygame.Rect(0, 0, 500, 50))
-        draw_text_centered("PLAYER 1 CHOOSE YOUR ITEMS", pygame.Rect(0, 0, 500, 50), 40, (237, 22, 22))
+    pygame.draw.rect(canvas, WHITE, pygame.Rect(0, 0, 500, 50))
+    draw_text_centered("PLAYER 1 CHOOSE YOUR ITEMS", pygame.Rect(0, 0, 500, 50), 40, (237, 22, 22))
 
-        pygame.draw.rect(canvas, WHITE, BTN_SHOP_BACK)
-        draw_text_centered("Back To Menu", BTN_SHOP_BACK, 14, (237, 22, 22))
+    pygame.draw.rect(canvas, WHITE, BTN_SHOP_BACK)
+    draw_text_centered("Back To Menu", BTN_SHOP_BACK, 14, (237, 22, 22))
 
-        _draw_shop_item(SHOP_ORANGE, pygame.Rect(10, 70, 80, 70), p1_orangeOwned,
-                        p1_orangeEquipped, orangeBoughtFlashFrames, 6, SHOP_ORANGE.collidepoint(p))
-        draw_img(orange, 20, 70, 60, 60)
+    _draw_shop_item(SHOP_ORANGE, pygame.Rect(10, 70, 80, 70), p1_orangeOwned,
+                    p1_orangeEquipped, orangeBoughtFlashFrames, 6, SHOP_ORANGE.collidepoint(p))
+    draw_img(orange, 20, 70, 60, 60)
 
-        _draw_shop_item(SHOP_PEAR, pygame.Rect(120, 70, 80, 70), p1_pearOwned,
-                        p1_pearEquipped, pearBoughtFlashFrames, 8, SHOP_PEAR.collidepoint(p))
-        draw_img(pear, 121, 64, 80, 80)
+    _draw_shop_item(SHOP_PEAR, pygame.Rect(120, 70, 80, 70), p1_pearOwned,
+                    p1_pearEquipped, pearBoughtFlashFrames, 8, SHOP_PEAR.collidepoint(p))
+    draw_img(pear, 121, 64, 80, 80)
 
-        _draw_shop_item(SHOP_TRAIL, pygame.Rect(230, 71, 80, 70), p1_trailOwned,
-                        p1_trailEquipped, trailBoughtFlashFrames, 9, SHOP_TRAIL.collidepoint(p))
-        draw_img(trail_img, 240, 76, 60, 60)
+    _draw_shop_item(SHOP_TRAIL, pygame.Rect(230, 71, 80, 70), p1_trailOwned,
+                    p1_trailEquipped, trailBoughtFlashFrames, 9, SHOP_TRAIL.collidepoint(p))
+    draw_img(trail_img, 240, 76, 60, 60)
+ 
+    pygame.draw.rect(canvas,WHITE,BTN_P1_1V1_SHOP)
+    draw_text_centered("Next", BTN_P1_1V1_SHOP,25,(230,22,22))
+
+
+
+def draw_p2_1v1_shop():
+    global p
+    p = mouse_canvas()
+
+
+    draw_img(alpsimg, 330, 387, 200, 200)
+    draw_text(":", 455, 463, 20, (48, 217, 205))
+    draw_text(str(alps), 465, 465, 20, (48, 217, 205))
+
+    pygame.draw.rect(canvas, WHITE, pygame.Rect(0, 0, 500, 50))
+    draw_text_centered("PLAYER 2 CHOOSE YOUR ITEMS", pygame.Rect(0, 0, 500, 50), 40, (184, 138, 13))
+
+    pygame.draw.rect(canvas, WHITE, BTN_SHOP_BACK)
+    draw_text_centered("Back", BTN_SHOP_BACK, 25, (184, 138, 13))
+
+    _draw_shop_item(SHOP_ORANGE, pygame.Rect(10, 70, 80, 70), p2_orangeOwned,
+                    p2_orangeEquipped, orangeBoughtFlashFrames, 6, SHOP_ORANGE.collidepoint(p))
+    draw_img(orange, 20, 70, 60, 60)
+
+    _draw_shop_item(SHOP_PEAR, pygame.Rect(120, 70, 80, 70), p2_pearOwned,
+                    p2_pearEquipped, pearBoughtFlashFrames, 8, SHOP_PEAR.collidepoint(p))
+    draw_img(pear, 121, 64, 80, 80)
+
+    _draw_shop_item(SHOP_TRAIL, pygame.Rect(230, 71, 80, 70), p2_trailOwned,
+                    p2_trailEquipped, trailBoughtFlashFrames, 9, SHOP_TRAIL.collidepoint(p))
+    draw_img(trail_img, 240, 76, 60, 60) 
+
+    pygame.draw.rect(canvas,WHITE,BTN_P2_1V1_SHOP)
+    draw_text_centered("Start Game", BTN_P2_1V1_SHOP,25,(184, 138, 13))
+
+
+def draw_settings():
+    canvas.fill(bgSettings[bgIndex])
+    draw_text("SETTINGS", 173, 60, 40, WHITE)
+
+    pygame.draw.rect(canvas, WHITE, BTN_SETTINGS_BACK, border_radius=15)
+    draw_text_centered("Back", BTN_SETTINGS_BACK, 18, (0, 0, 0))
+
+    pygame.draw.rect(canvas, (220, 220, 220), BTN_BG_COLOR, border_radius=15)
+    draw_text_centered("Change background color", BTN_BG_COLOR, 18, (0, 0, 0))
+
+    pygame.draw.rect(canvas, (220, 220, 220), BTN_CORDS, border_radius=15)
+    draw_text_centered("Cords:ON" if showCords else "Cords:OFF", BTN_CORDS, 18, (0, 0, 0))
     
-        pygame.draw.rect(canvas,WHITE,BTN_P1_1V1_SHOP)
-        draw_text_centered("Next", BTN_P1_1V1_SHOP,25,(230,22,22))
 
 
+def draw_basket_and_entities():
+    if trailEquipped:
+        draw_trail()
+    draw_img(current_basket_img(pearEquipped, orangeEquipped), basket_rect.x, basket_rect.y, 100, 50)
+    apples.draw(canvas)
+    boosters.draw(canvas)
+    show_score()
+    show_lives()
+    
+def draw_basket_and_entities_1v1():
 
-    def draw_p2_1v1_shop():
-        global p
-        p = mouse_canvas()
+    if p1_trailEquipped:
+        p1_draw_trail()
+    if p2_trailEquipped:
+        p2_draw_trail()
 
+    draw_img(current_basket_img(p1_pearOwned, p1_orangeOwned), player1_rect.x, player1_rect.y, 100, 50)
+    draw_img(current_basket_img(p2_pearOwned,p2_orangeOwned), player2_rect.x, player2_rect.y, 100, 50)
+    
+    draw_text("Player 1", player1_rect.x+22, player1_rect.y+29.5, 20, (237, 22, 22))
+    draw_text("Player 2", player2_rect.x+22, player2_rect.y+29.5, 20, (255, 255, 0))
 
-        draw_img(alpsimg, 330, 387, 200, 200)
-        draw_text(":", 455, 463, 20, (48, 217, 205))
-        draw_text(str(alps), 465, 465, 20, (48, 217, 205))
+    draw_text("Player 1 score: " + str(p1_score), 20, 20, 20, (237, 22, 22))
+    draw_text("Player 2 score: " + str(p2_score), 350, 20, 20, (255, 255, 0))
+    
+    apples.draw(canvas) 
 
-        pygame.draw.rect(canvas, WHITE, pygame.Rect(0, 0, 500, 50))
-        draw_text_centered("PLAYER 2 CHOOSE YOUR ITEMS", pygame.Rect(0, 0, 500, 50), 40, (184, 138, 13))
-
-        pygame.draw.rect(canvas, WHITE, BTN_SHOP_BACK)
-        draw_text_centered("Back", BTN_SHOP_BACK, 25, (184, 138, 13))
-
-        _draw_shop_item(SHOP_ORANGE, pygame.Rect(10, 70, 80, 70), p2_orangeOwned,
-                        p2_orangeEquipped, orangeBoughtFlashFrames, 6, SHOP_ORANGE.collidepoint(p))
-        draw_img(orange, 20, 70, 60, 60)
-
-        _draw_shop_item(SHOP_PEAR, pygame.Rect(120, 70, 80, 70), p2_pearOwned,
-                        p2_pearEquipped, pearBoughtFlashFrames, 8, SHOP_PEAR.collidepoint(p))
-        draw_img(pear, 121, 64, 80, 80)
-
-        _draw_shop_item(SHOP_TRAIL, pygame.Rect(230, 71, 80, 70), p2_trailOwned,
-                        p2_trailEquipped, trailBoughtFlashFrames, 9, SHOP_TRAIL.collidepoint(p))
-        draw_img(trail_img, 240, 76, 60, 60) 
-
-        pygame.draw.rect(canvas,WHITE,BTN_P2_1V1_SHOP)
-        draw_text_centered("Start Game", BTN_P2_1V1_SHOP,25,(184, 138, 13))
-
-
-    def draw_settings():
-        canvas.fill(bgSettings[bgIndex])
-        draw_text("SETTINGS", 173, 60, 40, WHITE)
-
-        pygame.draw.rect(canvas, WHITE, BTN_SETTINGS_BACK, border_radius=15)
-        draw_text_centered("Back", BTN_SETTINGS_BACK, 18, (0, 0, 0))
-
-        pygame.draw.rect(canvas, (220, 220, 220), BTN_BG_COLOR, border_radius=15)
-        draw_text_centered("Change background color", BTN_BG_COLOR, 18, (0, 0, 0))
-
-        pygame.draw.rect(canvas, (220, 220, 220), BTN_CORDS, border_radius=15)
-        draw_text_centered("Cords:ON" if showCords else "Cords:OFF", BTN_CORDS, 18, (0, 0, 0))
-        
-
-
-    def draw_basket_and_entities():
-        if trailEquipped:
-            draw_trail()
-        draw_img(current_basket_img(pearEquipped, orangeEquipped), basket_rect.x, basket_rect.y, 100, 50)
-        apples.draw(canvas)
-        boosters.draw(canvas)
-        show_score()
-        show_lives()
-        
-    def draw_basket_and_entities_1v1():
-
-        if p1_trailEquipped:
-            p1_draw_trail()
-        if p2_trailEquipped:
-            p2_draw_trail()
-
-        draw_img(current_basket_img(p1_pearOwned, p1_orangeOwned), player1_rect.x, player1_rect.y, 100, 50)
-        draw_img(current_basket_img(p2_pearOwned,p2_orangeOwned), player2_rect.x, player2_rect.y, 100, 50)
-        
-        draw_text("Player 1", player1_rect.x+22, player1_rect.y+29.5, 20, (237, 22, 22))
-        draw_text("Player 2", player2_rect.x+22, player2_rect.y+29.5, 20, (255, 255, 0))
-
-        draw_text("Player 1 score: " + str(p1_score), 20, 20, 20, (237, 22, 22))
-        draw_text("Player 2 score: " + str(p2_score), 350, 20, 20, (255, 255, 0))
-        
-        apples.draw(canvas) 
-
-
-        
-
-
-    def draw_paused():
-        draw_basket_and_entities()
-        
-        draw_img(alpsimg, 220, -50, 200, 200)
-        draw_text(":", 345, 27, 20, (48, 217, 205))
-        draw_text(str(alps), 357, 27, 20, (48, 217, 205))
-
-        pygame.draw.rect(canvas, WHITE, BTN_PAUSE, border_radius=15)
-        draw_img(resumeimg, 447, 10, 50, 50)
-        pygame.draw.rect(canvas, WHITE, BTN_MENU_PAUSED, border_radius=15)
-        draw_text_centered("Menu", BTN_MENU_PAUSED, 20, (0, 0, 0))
-        pygame.draw.rect(canvas, WHITE, BTN_SETTINGS_PAUSED, border_radius=15)
-        draw_img(settings_img, 244, 11, 70, 50)
-        
-
-
-        if speedBoostTimer > 0:
-            draw_text("BOOST READY", 180, 80, 20, (255, 240, 0))
-
-    # def draw_paused1v1():
-    #     draw_basket_and_entities_1v1()
-
-    #     pygame.draw.rect(canvas, WHITE, BTN_PAUSE, border_radius=15)
-    #     draw_img(resumeimg, 448, 11, 50, 50)
-    #     pygame.draw.rect(canvas, WHITE, BTN_MENU_PAUSED, border_radius=15)
-    #     draw_text_centered("Menu", BTN_MENU_PAUSED, 20, (0, 0, 0))
-    #     pygame.draw.rect(canvas, WHITE, BTN_SETTINGS_PAUSED, border_radius=15)
-    #     draw_img(settings_img, 244, 11, 70, 50)
 
     
 
-    #     apples.draw(canvas)
 
-    def draw_game_over():
-        canvas.fill((0, 0, 0))
-        draw_text("GAME OVER", 55, 190, 90, (80, 240, 31))
-        draw_text("Final Score: " + str(score), 163, 395, 35, (73, 217, 48))
-        pygame.draw.rect(canvas, (80, 240, 31), BTN_GAMEOVER_MENU, border_radius=15)
-        draw_text_centered("MENU", BTN_GAMEOVER_MENU, 40, (35, 161, 156))
+def draw_paused():
+    draw_basket_and_entities()
+    
+    draw_img(alpsimg, 220, -50, 200, 200)
+    draw_text(":", 345, 27, 20, (48, 217, 205))
+    draw_text(str(alps), 357, 27, 20, (48, 217, 205))
 
-    def draw_1v1_game_over():
-        canvas.fill((0, 0, 0))
+    pygame.draw.rect(canvas, WHITE, BTN_PAUSE, border_radius=15)
+    draw_img(resumeimg, 447, 10, 50, 50)
+    pygame.draw.rect(canvas, WHITE, BTN_MENU_PAUSED, border_radius=15)
+    draw_text_centered("Menu", BTN_MENU_PAUSED, 20, (0, 0, 0))
+    pygame.draw.rect(canvas, WHITE, BTN_SETTINGS_PAUSED, border_radius=15)
+    draw_img(settings_img, 244, 11, 70, 50)
+    
 
-        if p1_score > p2_score:
-            winner = "Player 1 wins!"
-            draw_text(winner, 163, 395, 35, (237, 22, 22))
-        else:
-            winner = "Player 2 wins!"
-            draw_text (winner, 163, 395, 35, (255, 255, 0))
-        
-        
-        draw_text("GAME OVER", 55, 190, 90, (80, 240, 31))
-        
-        pygame.draw.rect(canvas, (80, 240, 31), BTN_GAMEOVER_MENU, border_radius=15)
-        draw_text_centered("MENU", BTN_GAMEOVER_MENU, 40, (35, 161, 156))
 
-    def update_and_draw_play():
-        global speed, speedBoostTimer, boosterSpawnCooldown, score, lives, alps, gameState,timeLeft
+    if speedBoostTimer > 0:
+        draw_text("BOOST READY", 180, 80, 20, (255, 240, 0))
 
-        if random.randint(1, 57) == 8:
-            apples.add(Apple(difficulty))
+# def draw_paused1v1():
+#     draw_basket_and_entities_1v1()
+
+#     pygame.draw.rect(canvas, WHITE, BTN_PAUSE, border_radius=15)
+#     draw_img(resumeimg, 448, 11, 50, 50)
+#     pygame.draw.rect(canvas, WHITE, BTN_MENU_PAUSED, border_radius=15)
+#     draw_text_centered("Menu", BTN_MENU_PAUSED, 20, (0, 0, 0))
+#     pygame.draw.rect(canvas, WHITE, BTN_SETTINGS_PAUSED, border_radius=15)
+#     draw_img(settings_img, 244, 11, 70, 50)
+
+  
+
+#     apples.draw(canvas)
+
+def draw_game_over():
+    canvas.fill((0, 0, 0))
+    draw_text("GAME OVER", 55, 190, 90, (80, 240, 31))
+    draw_text("Final Score: " + str(score), 163, 395, 35, (73, 217, 48))
+    pygame.draw.rect(canvas, (80, 240, 31), BTN_GAMEOVER_MENU, border_radius=15)
+    draw_text_centered("MENU", BTN_GAMEOVER_MENU, 40, (35, 161, 156))
+
+def draw_1v1_game_over():
+    canvas.fill((0, 0, 0))
+
+    if p1_score > p2_score:
+        winner = "Player 1 wins!"
+        draw_text(winner, 163, 395, 35, (237, 22, 22))
+    else:
+        winner = "Player 2 wins!"
+        draw_text (winner, 163, 395, 35, (255, 255, 0))
+    
+    
+    draw_text("GAME OVER", 55, 190, 90, (80, 240, 31))
+    
+    pygame.draw.rect(canvas, (80, 240, 31), BTN_GAMEOVER_MENU, border_radius=15)
+    draw_text_centered("MENU", BTN_GAMEOVER_MENU, 40, (35, 161, 156))
+
+def update_and_draw_play():
+    global speed, speedBoostTimer, boosterSpawnCooldown, score, lives, alps, gameState,timeLeft
+
+    if random.randint(1, 57) == 8:
+        apples.add(Apple(difficulty))
+
+    if boosterSpawnCooldown > 0:
+        boosterSpawnCooldown -= 1
+    elif random.randint(1, 220) == 12:
+        boosters.add(Booster())
+        boosterSpawnCooldown = 120
+
+    if speedBoostTimer > 0:
+        speedBoostTimer -= 1
+        speed = baseSpeed + boostAmount
+    else:
+        speed = baseSpeed
+
+    if trailEquipped:
+        trailPoints.append((basket_rect.x + 50, basket_rect.y + 30))
+        if len(trailPoints) > trailMaxLength:
+            trailPoints.pop(0)
+        draw_trail()
+
+    draw_img(alpsimg, 220, -45, 200, 200)
+    draw_text(":", 345, 27, 20, (48, 217, 205))
+    draw_text(str(alps), 357, 27, 20, (48, 217, 205))
+
+    draw_img(current_basket_img(pearEquipped,orangeEquipped), basket_rect.x, basket_rect.y, 100, 50)
+
+    # Apples: a loose catch box around the basket; missed if they fall past 425.
+    catch_box = pygame.Rect(basket_rect.x - 49, basket_rect.y - 49, 149, 49)
+    apples.update()
+    for apple in list(apples):
+        if apple.rect.top >= 425:
+            apple.kill()
+            lives -= 1
+        elif catch_box.collidepoint(apple.rect.topleft):
+            apple.kill()
+            score += 1
+            if (difficulty == 1 and score % 5 == 0) or \
+               (difficulty == 3 and score % 3 == 0) or \
+               (difficulty == 6 and score % 2 == 0):
+                alps += 1
+    apples.draw(canvas)
+
+    # Boosters.
+    boost_box = pygame.Rect(basket_rect.x - 20, basket_rect.y - 35, 120, 55)
+    boosters.update()
+    for booster in list(boosters):
+        if booster.rect.centery > 520:
+            booster.kill()
+        elif boost_box.collidepoint(booster.rect.center):
+            booster.kill()
+            speedBoostTimer = boostLength
+    boosters.draw(canvas)
+
+    if speedBoostTimer > 0:
+        draw_text("Boost!", 227, 65, 22, (255, 230, 0))
+
+    if lives <= 0:
+        gameState = "gameOver"
+
+    show_score()
+    show_lives()
+
+    pygame.draw.rect(canvas, WHITE, BTN_PAUSE, border_radius=15)
+    draw_img(pauseimg, 446, 10, 50, 50)
+
+
+def draw_1v1():
+    global p1_score, p2_score, timeLeft, difficulty, p1_speed, p2_speed, boosterSpawnCooldown ,boosters, p1_speedBoostTimer, p2_speedBoostTimer, boostLength, boostAmount,text_counter_1v1
+    global player1_rect,player2_rect,bgIndex,bgColors
+    canvas.fill(bgColors[bgIndex])
+
+    text_counter_1v1 += 1
+    if text_counter_1v1 < 240:
+            countdownNum = 4 - (text_counter_1v1 / 60)
+            countdownNum = math.floor(countdownNum)
+            if text_counter_1v1 >= 180:
+                draw_text("GO", 225, 210, 40, (255, 0, 0))
+                draw_text("Catch those apples!", 114 , 250, 40, (255, 0, 0))
+
+            else:
+                draw_text(countdownNum, 240, 222, 40, (255, 0, 0))
+            
+            player1_rect = pygame.Rect(100,400,120, 55)
+            player2_rect = pygame.Rect(400,400,120,55)    
+    else:
+    
+        p1_speed = 9
+        p2_speed = 9
 
         if boosterSpawnCooldown > 0:
             boosterSpawnCooldown -= 1
         elif random.randint(1, 220) == 12:
             boosters.add(Booster())
-            boosterSpawnCooldown = 120
+            boosterSpawnCooldown = 300
 
-        if speedBoostTimer > 0:
-            speedBoostTimer -= 1
-            speed = baseSpeed + boostAmount
-        else:
-            speed = baseSpeed
+        p1_boost_box = pygame.Rect(player1_rect.x - 20, player1_rect.y - 35, 120, 55)
+        p2_boost_box = pygame.Rect(player2_rect.x - 20, player2_rect.y - 35, 120, 55)
 
-        if trailEquipped:
-            trailPoints.append((basket_rect.x + 50, basket_rect.y + 30))
-            if len(trailPoints) > trailMaxLength:
-                trailPoints.pop(0)
-            draw_trail()
-
-        draw_img(alpsimg, 220, -45, 200, 200)
-        draw_text(":", 345, 27, 20, (48, 217, 205))
-        draw_text(str(alps), 357, 27, 20, (48, 217, 205))
-
-        draw_img(current_basket_img(pearEquipped,orangeEquipped), basket_rect.x, basket_rect.y, 100, 50)
-
-        # Apples: a loose catch box around the basket; missed if they fall past 425.
-        catch_box = pygame.Rect(basket_rect.x - 49, basket_rect.y - 49, 149, 49)
-        apples.update()
-        for apple in list(apples):
-            if apple.rect.top >= 425:
-                apple.kill()
-                lives -= 1
-            elif catch_box.collidepoint(apple.rect.topleft):
-                apple.kill()
-                score += 1
-                if (difficulty == 1 and score % 5 == 0) or \
-                (difficulty == 3 and score % 3 == 0) or \
-                (difficulty == 6 and score % 2 == 0):
-                    alps += 1
-        apples.draw(canvas)
-
-        # Boosters.
-        boost_box = pygame.Rect(basket_rect.x - 20, basket_rect.y - 35, 120, 55)
         boosters.update()
         for booster in list(boosters):
             if booster.rect.centery > 520:
                 booster.kill()
-            elif boost_box.collidepoint(booster.rect.center):
+            elif p1_boost_box.collidepoint(booster.rect.center): 
                 booster.kill()
-                speedBoostTimer = boostLength
+                p1_speedBoostTimer = boostLength
+            elif p2_boost_box.collidepoint(booster.rect.center):
+                booster.kill()
+                p2_speedBoostTimer = boostLength   
+
         boosters.draw(canvas)
-
-        if speedBoostTimer > 0:
-            draw_text("Boost!", 227, 65, 22, (255, 230, 0))
-
-        if lives <= 0:
-            gameState = "gameOver"
-
-        show_score()
-        show_lives()
-
-        pygame.draw.rect(canvas, WHITE, BTN_PAUSE, border_radius=15)
-        draw_img(pauseimg, 446, 10, 50, 50)
-
-
-    def draw_1v1():
-        global p1_score, p2_score, timeLeft, difficulty, p1_speed, p2_speed, boosterSpawnCooldown ,boosters, p1_speedBoostTimer, p2_speedBoostTimer, boostLength, boostAmount,text_counter_1v1
-        global player1_rect,player2_rect,bgIndex,bgColors
-        canvas.fill(bgColors[bgIndex])
-
-        text_counter_1v1 += 1
-        if text_counter_1v1 < 240:
-                countdownNum = 4 - (text_counter_1v1 / 60)
-                countdownNum = math.floor(countdownNum)
-                if text_counter_1v1 >= 180:
-                    draw_text("GO", 225, 210, 40, (255, 0, 0))
-                    draw_text("Catch those apples!", 114 , 250, 40, (255, 0, 0))
-
-                else:
-                    draw_text(countdownNum, 240, 222, 40, (255, 0, 0))
-                
-                player1_rect = pygame.Rect(100,400,120, 55)
-                player2_rect = pygame.Rect(400,400,120,55)    
-        else:
         
-            p1_speed = 9
-            p2_speed = 9
+        if p1_speedBoostTimer > 0:
+            p1_speedBoostTimer -= 1
+            p1_speed = baseSpeed_1v1 + boostAmount_1v1
+        else:
+            p1_speed = baseSpeed_1v1   
 
-            if boosterSpawnCooldown > 0:
-                boosterSpawnCooldown -= 1
-            elif random.randint(1, 220) == 12:
-                boosters.add(Booster())
-                boosterSpawnCooldown = 300
+        if p2_speedBoostTimer > 0:
+            p2_speedBoostTimer -= 1
+            p2_speed = baseSpeed_1v1 + boostAmount_1v1
+        else:
+            p2_speed = baseSpeed_1v1   
 
-            p1_boost_box = pygame.Rect(player1_rect.x - 20, player1_rect.y - 35, 120, 55)
-            p2_boost_box = pygame.Rect(player2_rect.x - 20, player2_rect.y - 35, 120, 55)
 
-            boosters.update()
-            for booster in list(boosters):
-                if booster.rect.centery > 520:
-                    booster.kill()
-                elif p1_boost_box.collidepoint(booster.rect.center): 
-                    booster.kill()
-                    p1_speedBoostTimer = boostLength
-                elif p2_boost_box.collidepoint(booster.rect.center):
-                    booster.kill()
-                    p2_speedBoostTimer = boostLength   
 
-            boosters.draw(canvas)
+
+
+        display_time_left()
+
+        if p1_trailEquipped:
+            p1_trailPoints.append((player1_rect.x + 50, player1_rect.y + 30))
+            if len(p1_trailPoints) > trailMaxLength:
+                p1_trailPoints.pop(0)
+            draw_trail()
+
+        if p2_trailEquipped:
+            p2_trailPoints.append((player2_rect.x + 50, player2_rect.y + 30))
+            if len(p2_trailPoints) > trailMaxLength:
+                p2_trailPoints.pop(0)
+            draw_trail()
+
             
-            if p1_speedBoostTimer > 0:
-                p1_speedBoostTimer -= 1
-                p1_speed = baseSpeed_1v1 + boostAmount_1v1
-            else:
-                p1_speed = baseSpeed_1v1   
+        if random.randint(1, 57) == 8:
+            apples.add(Apple(4))
+        apples.update()
+            
+        player1_hitbox = pygame.Rect(player1_rect.x - 49, player1_rect.y - 49, 149, 49)
+        player2_hitbox = pygame.Rect(player2_rect.x - 49, player2_rect.y - 49, 149, 49)
+            
+        for apple in list(apples):
+            if apple.rect.top >= 425:
+                apple.kill()
+            elif player1_hitbox.collidepoint(apple.rect.topleft):
+                apple.kill()
+                p1_score += 1
+            elif player2_hitbox.collidepoint(apple.rect.topleft):
+                apple.kill()
+                p2_score += 1
 
-            if p2_speedBoostTimer > 0:
-                p2_speedBoostTimer -= 1
-                p2_speed = baseSpeed_1v1 + boostAmount_1v1
-            else:
-                p2_speed = baseSpeed_1v1   
+        draw_basket_and_entities_1v1()
+    
+    
+def draw_tiebreaker():
+    global p1_score, p2_score, tiebreaker_apples, gameState, apples,tiebreaker_text_counter
+    global player1_rect,player2_rect
+    canvas.fill(bgColors[bgIndex])
+    tiebreaker_text_counter += 1
+    if tiebreaker_text_counter < 240:
+        countdownNum = 4 - (tiebreaker_text_counter / 60)
+        countdownNum = math.floor(countdownNum)
+        if tiebreaker_text_counter >= 180:
+            draw_text("TIEBREAKER!", 150, 200, 40, (255, 0, 0))
+            draw_text("First to 11 wins!", 143 , 250, 40, (255, 0, 0))
+        else:      
+            
+            draw_text(countdownNum, 240, 222, 40, (255, 0, 0))
+                        
+        player1_rect = pygame.Rect(100,400,120, 55)
+        player2_rect = pygame.Rect(400,400,120,55)      
+    else:
+        draw_text("Apples left: " + str(tiebreaker_apples), 176, 28, 25, (255, 0, 0), anchor="midleft")
 
-
-
-
-
-            display_time_left()
-
-            if p1_trailEquipped:
-                p1_trailPoints.append((player1_rect.x + 50, player1_rect.y + 30))
-                if len(p1_trailPoints) > trailMaxLength:
-                    p1_trailPoints.pop(0)
-                draw_trail()
-
-            if p2_trailEquipped:
-                p2_trailPoints.append((player2_rect.x + 50, player2_rect.y + 30))
-                if len(p2_trailPoints) > trailMaxLength:
-                    p2_trailPoints.pop(0)
-                draw_trail()
+        if not apples:
+            apples.add(Apple(3))
+        
+            
 
                 
-            if random.randint(1, 57) == 8:
-                apples.add(Apple(4))
-            apples.update()
-                
-            player1_hitbox = pygame.Rect(player1_rect.x - 49, player1_rect.y - 49, 149, 49)
-            player2_hitbox = pygame.Rect(player2_rect.x - 49, player2_rect.y - 49, 149, 49)
-                
-            for apple in list(apples):
+        apples.update()
+        
+        player1_hitbox = pygame.Rect(player1_rect.x - 49, player1_rect.y - 49, 149, 49)
+        player2_hitbox = pygame.Rect(player2_rect.x - 49, player2_rect.y - 49, 149, 49)
+        
+        for apple in list(apples):
                 if apple.rect.top >= 425:
-                    apple.kill()
+                    apple.kill()    
                 elif player1_hitbox.collidepoint(apple.rect.topleft):
                     apple.kill()
+                    tiebreaker_apples -= 1
                     p1_score += 1
                 elif player2_hitbox.collidepoint(apple.rect.topleft):
                     apple.kill()
+                    tiebreaker_apples -= 1
                     p2_score += 1
-
-            draw_basket_and_entities_1v1()
-        
-        
-    def draw_tiebreaker():
-        global p1_score, p2_score, tiebreaker_apples, gameState, apples,tiebreaker_text_counter
-        global player1_rect,player2_rect
-        canvas.fill(bgColors[bgIndex])
-        tiebreaker_text_counter += 1
-        if tiebreaker_text_counter < 240:
-            countdownNum = 4 - (tiebreaker_text_counter / 60)
-            countdownNum = math.floor(countdownNum)
-            if tiebreaker_text_counter >= 180:
-                draw_text("TIEBREAKER!", 150, 200, 40, (255, 0, 0))
-                draw_text("First to 11 wins!", 143 , 250, 40, (255, 0, 0))
-            else:      
-                
-                draw_text(countdownNum, 240, 222, 40, (255, 0, 0))
-                            
-            player1_rect = pygame.Rect(100,400,120, 55)
-            player2_rect = pygame.Rect(400,400,120,55)      
-        else:
-            draw_text("Apples left: " + str(tiebreaker_apples), 176, 28, 25, (255, 0, 0), anchor="midleft")
-
-            if not apples:
-                apples.add(Apple(3))
-            
-                
-
                     
-            apples.update()
-            
-            player1_hitbox = pygame.Rect(player1_rect.x - 49, player1_rect.y - 49, 149, 49)
-            player2_hitbox = pygame.Rect(player2_rect.x - 49, player2_rect.y - 49, 149, 49)
-            
-            for apple in list(apples):
-                    if apple.rect.top >= 425:
-                        apple.kill()    
-                    elif player1_hitbox.collidepoint(apple.rect.topleft):
-                        apple.kill()
-                        tiebreaker_apples -= 1
-                        p1_score += 1
-                    elif player2_hitbox.collidepoint(apple.rect.topleft):
-                        apple.kill()
-                        tiebreaker_apples -= 1
-                        p2_score += 1
-                        
-            if tiebreaker_apples <= 0 and not apples:
-                print("game over")
-                gameState = "gameOver1v1"
+        if tiebreaker_apples <= 0 and not apples:
+            print("game over")
+            gameState = "gameOver1v1"
 
-            draw_basket_and_entities_1v1()
+        draw_basket_and_entities_1v1()
 
 
-    # ----------------------------------------------------------------------
-    # Main loop
-    # ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
+# Main loop
+# ----------------------------------------------------------------------
 
+async def main():
+    global event, gameState, keys, mx, my, orangeBoughtFlashFrames, p1_score, p2_score, pearBoughtFlashFrames, player1_pos, player1_rect, player2_pos, player2_rect, running, screen, tiebreaker_apples, tiebreaker_text_counter, timeLeft, trailBoughtFlashFrames, view
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.VIDEORESIZE:
                 screen = pygame.display.set_mode((max(event.w, 1), max(event.h, 1)),
-                                                pygame.RESIZABLE)
+                                                 pygame.RESIZABLE)
             elif event.type == pygame.KEYDOWN:
                 handle_keydown(event)
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -1100,7 +1098,7 @@ async def main():
                         player2_rect = pygame.Rect(player2_pos.x, player2_pos.y, 100, 50)
 
 
-            
+        
 
         if gameState == "play":
             keys = pygame.key.get_pressed()
@@ -1116,7 +1114,7 @@ async def main():
 
 
 
-        
+    
         elif gameState =="1v1":
             keys = pygame.key.get_pressed()
             if (keys[pygame.K_a]) and player1_rect.x >= 0:
@@ -1157,7 +1155,7 @@ async def main():
             if (keys[pygame.K_UP]) and player2_rect.y >= 32:
                 player2_rect.y -= p2_speed
 
-        
+    
 
         if gameState not in ("settings", "gameOver"):
             canvas.fill(bgColors[bgIndex])
@@ -1187,7 +1185,7 @@ async def main():
             update_and_draw_play()
         elif gameState == "1v1":
             draw_1v1()
-        
+    
         elif gameState == "p1_1v1_shop":
             draw_p1_1v1_shop()
         elif gameState == "tiebreaker":
@@ -1200,7 +1198,7 @@ async def main():
         if showCords:
             mx, my = mouse_canvas()
             draw_text(str(int(mx)) + ", " + str(int(my)), 20, 497, 15, (255, 0, 0),
-                    anchor="bottomleft")
+                      anchor="bottomleft")
 
         # Scale the fixed canvas into the aspect-correct viewport and present,
         # letterboxing the rest of the window in black.
@@ -1213,5 +1211,6 @@ async def main():
         await asyncio.sleep(0)  # yield to the browser event loop (pygbag)
 
     pygame.quit()
+
 
 asyncio.run(main())
