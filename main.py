@@ -171,7 +171,7 @@ save = False
 saveLevel = 1
 showCords = False
 timerEvent = pygame.USEREVENT + 1
-pygame.time.set_timer(timerEvent, 900)
+TIMER_MS = 900  # posted manually in main(); pygame.time.set_timer isn't supported under pygbag/WASM
 timeLeft = 90
 tiebreaker_apples = 11
 tiebreaker_text_counter = 0
@@ -1064,7 +1064,11 @@ def draw_tiebreaker():
 
 async def main():
     global event, gameState, keys, mx, my, orangeBoughtFlashFrames, p1_score, p2_score, pearBoughtFlashFrames, player1_pos, player1_rect, player2_pos, player2_rect, running, screen, tiebreaker_apples, tiebreaker_text_counter, timeLeft, trailBoughtFlashFrames, view
+    next_timer_tick = pygame.time.get_ticks() + TIMER_MS
     while running:
+        if pygame.time.get_ticks() >= next_timer_tick:
+            next_timer_tick += TIMER_MS
+            pygame.event.post(pygame.event.Event(timerEvent))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
