@@ -822,7 +822,7 @@ def draw_paused():
 def draw_game_over():
     canvas.fill((0, 0, 0))
     draw_text("GAME OVER", 55, 190, 90, (80, 240, 31))
-    draw_text("Final Score: " + str(score), 163, 395, 35, (73, 217, 48))
+    draw_text("Final Score: " + str(score), 166, 395, 35, (73, 217, 48))
     pygame.draw.rect(canvas, (80, 240, 31), BTN_GAMEOVER_MENU, border_radius=15)
     draw_text_centered("MENU", BTN_GAMEOVER_MENU, 40, (35, 161, 156))
 
