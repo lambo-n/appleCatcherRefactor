@@ -1210,6 +1210,7 @@ async def main():
         pygame.transform.smoothscale(canvas, view.size, screen.subsurface(view))
         pygame.display.flip()
         clock.tick(60)
+        await asyncio.sleep(0)  # yield to the browser event loop (pygbag)
 
     pygame.quit()
 
